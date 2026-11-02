@@ -1,6 +1,6 @@
 // FitTrack: service worker per l'uso offline.
 // Cambia il numero di versione qui sotto a ogni aggiornamento dell'app.
-const C = 'fittrack-v5';
+const C = 'fittrack-v6';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -20,7 +20,7 @@ self.addEventListener('fetch', e => {
   if (r.method !== 'GET') return;
   const u = new URL(r.url);
   const same = u.origin === location.origin;
-  const lib = u.hostname === 'unpkg.com';
+  const lib = u.hostname === 'unpkg.com' || u.hostname === 'cdn.jsdelivr.net';
   // Open Food Facts e tutto il resto: sempre dalla rete, mai in cache.
   if (!same && !lib) return;
   e.respondWith(
