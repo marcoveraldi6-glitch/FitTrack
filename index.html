@@ -66,7 +66,8 @@ const K="fittrack.v1";
 let S={profile:{sex:"M",age:30,h:175,w:75,act:1.2},phases:[],exercises:["Panca piana","Squat","Stacco","Military press","Trazioni","Rematore","Corsa"],meals:[],work:[],weights:[]};
 try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 try{fixS()}catch(e){}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}persist()};
+let savedF=false;
+const save=()=>{savedF=true;try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}persist()};
 const $=id=>document.getElementById(id);
 const num=id=>parseFloat($(id).value)||0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -353,7 +354,7 @@ function planCard(){if(day!==iso(new Date()))return '';const k=(new Date().getDa
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='5.9';
+const VER='6.0';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
@@ -621,5 +622,9 @@ async function initDb(){
 setSync('Dati salvati su questo telefono');
 if(typeof claude!=='undefined'&&claude&&claude.use)initDb();
 try{if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}catch(e){}
+let tT=null;
+function toast(m){let e=document.getElementById('tt');if(!e){e=document.createElement('div');e.id='tt';e.setAttribute('role','status');e.style.cssText='position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#16a34a;color:#fff;font-weight:600;padding:10px 18px;border-radius:22px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:opacity .25s;max-width:90%;text-align:center;pointer-events:none';document.body.appendChild(e)}
+ e.textContent=m;e.style.opacity='1';clearTimeout(tT);tT=setTimeout(()=>{e.style.opacity='0'},1800)}
+[['addF','Aggiunto ✓'],['addCF','Alimento salvato ✓'],['saveMeal','Pasto salvato ✓'],['useSaved','Pasto aggiunto ✓'],['copyPrev','Copiato ✓'],['setW','Peso salvato ✓'],['addMeal','Pasto aggiunto ✓'],['addMeas','Misure salvate ✓'],['rcpSave','Ricetta salvata ✓'],['setEB','Salvato ✓'],['addAct','Attività salvata ✓'],['addWork','Esercizio salvato ✓'],['switchPh','Fase cambiata ✓'],['saveProf','Profilo salvato ✓'],['addPh','Fase salvata ✓'],['rbSave','Scheda salvata ✓'],['endSess','Allenamento salvato ✓'],['addEx','Esercizio aggiunto ✓'],['wzDone','Profilo creato ✓']].forEach(([n,m])=>{const f=window[n];if(typeof f!=='function')return;window[n]=function(){savedF=false;const r=f.apply(this,arguments);if(savedF)toast(m);return r}});
 applyTheme();render();
 </script></body></html>
