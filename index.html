@@ -41,7 +41,7 @@ h3{margin:14px 0 6px;font-size:15px}.pos{color:var(--ac)}.neg{color:var(--ok)}
 .seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 summary{cursor:pointer;padding:2px 0}details>summary b{font-size:16px}
 #rt{position:fixed;left:8px;right:8px;bottom:calc(64px + env(safe-area-inset-bottom,0px));background:var(--ac);color:#fff;border-radius:12px;padding:8px 12px;display:flex;gap:8px;align-items:center;z-index:5}
-#rt[hidden]{display:none}#rt b{flex:1;font-size:20px}#rt button{background:#fff3;color:#fff;border-color:#fff4;padding:6px 10px}
+#rt[hidden],#ut[hidden]{display:none}#ut{position:fixed;left:8px;right:8px;bottom:calc(66px + env(safe-area-inset-bottom,0px));background:#2a2f3a;color:#fff;border-radius:12px;padding:8px 12px;display:flex;gap:8px;align-items:center;z-index:7;font-size:14px}#ut button{background:#fff3;color:#fff;border-color:#fff4;padding:6px 14px}#rt b{flex:1;font-size:20px}#rt button{background:#fff3;color:#fff;border-color:#fff4;padding:6px 10px}
 </style></head><body>
 <div id="sync" class="mut" style="text-align:center;font-size:11px;padding-top:8px"></div>
 <main id="view"></main>
@@ -52,6 +52,7 @@ summary{cursor:pointer;padding:2px 0}details>summary b{font-size:16px}
 <button data-t="piano" onclick="tab='piano';render()"><span style="display:block;font-size:19px">⚙️</span>Impostazioni</button>
 </nav>
 <div id="rt" hidden></div>
+<div id="ut" hidden></div>
 <div id="sc" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;padding:16px;flex-direction:column;gap:12px"><div style="color:#fff;text-align:center">Inquadra il codice a barre del prodotto</div><div id="rd" style="width:100%;max-width:420px;margin:auto"></div><button class="p" onclick="scanStop()">Chiudi</button></div>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
@@ -72,7 +73,10 @@ const phaseOn=d=>S.phases.filter(p=>p.start<=d).sort((a,b)=>a.start<b.start?1:-1
 function stats(d){const m=S.meals.filter(x=>x.date===d),w=S.work.filter(x=>x.date===d);
  const intake=sum(m,"kcal"),burned=sum(w,"kcal"),base=bmr()*S.profile.act;
  return {m,w,intake,burned,base,bal:intake-base-burned,p:sum(m,"p"),c:sum(m,"c"),f:sum(m,"f")}}
-function del(k,id){S[k]=S[k].filter(x=>x.id!==id);save();render()}
+let und=null,undT=null;
+function del(k,id){const i=S[k].findIndex(x=>x.id===id);if(i<0)return;const it=S[k][i];und={k,item:it,i};S[k].splice(i,1);save();render();
+ const nm=String(it.name||it.exercise||'Elemento').slice(0,26),e=$('ut');if(!e)return;e.innerHTML='<span style="flex:1">Eliminato: '+esc(nm)+'</span><button onclick="undoDel()">Annulla</button>';e.hidden=false;clearTimeout(undT);undT=setTimeout(()=>{e.hidden=true;und=null},6000)}
+function undoDel(){if(!und)return;const a=S[und.k];a.splice(Math.min(und.i,a.length),0,und.item);und=null;clearTimeout(undT);$('ut').hidden=true;save();render()}
 function go(n){const d=new Date(day+"T12:00:00");d.setDate(d.getDate()+n);day=iso(d);render()}
 const dateBar=()=>`<div class="row"><button onclick="go(-1)">‹</button><input type="date" value="${day}" onchange="day=this.value||day;render()"><button onclick="go(1)">›</button></div>`;
 
@@ -200,7 +204,7 @@ function vOggi(){if(rcpB)return vRecipe();if(add)return vAdd();const s=stats(day
  const mb=(l,v,g,c)=>`<div style="flex:1"><div class="mut">${l}</div><b>${R(v)}</b><span class="mut">${g?' / '+R(g)+' g':' g'}</span><div class="pb"><i style="background:${c};width:${g?Math.min(100,v/g*100):0}%"></i></div></div>`;
  return bkCard()+startCard()+dateBar()+`<div class="card"><div class="row" style="margin:0"><div style="flex:1"><span class="mut">${ph?esc(ph.name)+(tag?' · '+tag:''):'Nessuna fase impostata'}</span><div style="font-size:30px;font-weight:700">${R(s.intake)}<span class="mut" style="font-size:15px">${t?' / '+R(t)+' kcal':' kcal'}</span></div></div>${left!==null?`<div style="text-align:right"><span class="mut">${left>=0?'Restano':'Oltre'}</span><div style="font-size:22px;font-weight:700">${Math.abs(left)}</div></div>`:''}</div>${t?`<div class="pb"><i style="width:${Math.min(100,s.intake/t*100)}%"></i></div>`:''}
  <div class="row" style="margin:12px 0 0;gap:12px">${mb('Proteine',s.p,dt_&&dt_.p,COL[0])}${mb('Carbo',s.c,dt_&&dt_.c,COL[3])}${mb('Grassi',s.f,dt_&&dt_.f,COL[1])}</div>
- <p class="mut" style="margin:10px 0 0;font-size:12px">Spesa stimata ${R(s.base+s.burned)} kcal · bilancio ${s.bal>0?'+':''}${R(s.bal)} kcal</p></div>
+ <p class="mut" style="margin:10px 0 0;font-size:12px">${dt_&&dt_.bonus?'Target +'+dt_.bonus+' kcal grazie all’allenamento · ':''}Spesa stimata ${R(s.base+s.burned)} kcal · bilancio ${s.bal>0?'+':''}${R(s.bal)} kcal</p></div>
  ${planCard()}
  ${dash2()}
  ${adaptCard()?`<button style="width:100%;margin-bottom:10px;text-align:left" onclick="tab='trend';render()">💡 C’è un consiglio sul tuo obiettivo · vedi in Progressi</button>`:''}
@@ -270,7 +274,7 @@ function planCard(){const k=(new Date().getDay()+6)%7,rs=S.routines.filter(r=>(r
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='4.0';
+const VER='4.1';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
@@ -313,7 +317,9 @@ function vRecipe(){return `<div class="row"><b style="flex:1;font-size:20px">Nuo
 /* target giorni di allenamento / riposo */
 const hasPlan=()=>S.routines.some(r=>(r.days||[]).length);
 const isTrain=d=>S.routines.some(r=>(r.days||[]).includes(dow(d)))||S.work.some(w=>w.date===d);
-function dayT(d){const ph=phaseOn(d);if(!ph)return null;let k=ph.kcal,c=ph.c||0,rest=0;const rd=+ph.rest||0;if(rd>0&&hasPlan()&&!isTrain(d)){k-=rd;c=Math.max(0,c-rd/4);rest=1}return{k,p:ph.p||0,c,f:ph.f||0,rest}}
+function dayT(d){const ph=phaseOn(d);if(!ph)return null;let k=ph.kcal,c=ph.c||0,rest=0,bonus=0;const rd=+ph.rest||0;if(rd>0&&hasPlan()&&!isTrain(d)){k-=rd;c=Math.max(0,c-rd/4);rest=1}
+ const eb=+S.eatBack||0;if(eb>0){bonus=R(stats(d).burned*eb/100);k+=bonus;c+=bonus/4}return{k,p:ph.p||0,c,f:ph.f||0,rest,bonus}}
+function setEB(v){S.eatBack=+v||0;save();render()}
 const dayTag=d=>(phaseOn(d)&&hasPlan())?(isTrain(d)?'giorno di allenamento':'giorno di riposo'):'';
 /* peso obiettivo */
 function wSlope(){const from=iso(new Date(Date.now()-28*864e5)),w=S.weights.filter(x=>x.date>=from).sort((a,b)=>a.date<b.date?-1:1);if(w.length<3)return null;
@@ -407,7 +413,8 @@ function vPiano(){const p=S.profile,cur=phaseOn(iso(new Date())),first=!S.phases
  <div><label>Peso obiettivo kg (facoltativo)</label><input id="pg_" type="number" step="0.1" value="${p.goalW||''}"></div></div>
  <label>Attività quotidiana (senza allenamenti)</label><select id="pc">${[[1.2,"Sedentaria ×1,2"],[1.375,"Leggera ×1,375"],[1.55,"Moderata ×1,55"],[1.725,"Alta ×1,725"]].map(a=>`<option value="${a[0]}" ${a[0]==p.act?"selected":""}>${a[1]}</option>`).join("")}</select>
  <button class="p" style="width:100%;margin-top:8px" onclick="saveProf()">Salva profilo</button>`;
- const fasi=`<label style="margin-top:10px">Tipo di fase</label><select id="ft"><option value="massa">Massa</option><option value="def">Definizione</option><option value="ric">Ricomposizione</option><option value="man">Mantenimento</option></select>
+ const fasi=`<label style="margin-top:10px">Allenamento: aggiungi al target di oggi</label><select onchange="setEB(this.value)">${[[0,'Niente (target fisso)'],[25,'25% delle kcal bruciate'],[50,'50% delle kcal bruciate'],[75,'75% delle kcal bruciate'],[100,'100% delle kcal bruciate']].map(a=>`<option value="${a[0]}" ${(+S.eatBack||0)===a[0]?'selected':''}>${a[1]}</option>`).join('')}</select><p class="mut" style="margin:4px 0 0;font-size:12px">Le stime di calorie bruciate sono approssimate: 50% è una scelta prudente.</p>
+ <label style="margin-top:12px">Tipo di fase</label><select id="ft"><option value="massa">Massa</option><option value="def">Definizione</option><option value="ric">Ricomposizione</option><option value="man">Mantenimento</option></select>
  <button style="width:100%;margin:8px 0" onclick="autoPh()">Calcola kcal e macro</button><p class="mut" id="am" style="margin:0 0 8px"></p>
  <div class="f2" style="margin-top:8px"><div><label>Nome</label><input id="fn" placeholder="Massa"></div><div><label>Inizio</label><input id="fs" type="date" value="${iso(new Date())}"></div>
  <div><label>Target kcal</label><input id="fk" type="number"></div><div><label>Proteine g</label><input id="fp" type="number"></div><div><label>Carboidrati g</label><input id="fc" type="number"></div><div><label>Grassi g</label><input id="ff" type="number"></div><div style="grid-column:span 2"><label>Giorni senza allenamento: kcal in meno (le togli dai carboidrati)</label><input id="fr_" type="number" placeholder="0 = stesso target tutti i giorni"></div></div>
@@ -428,7 +435,7 @@ function autoPh(){const t=$("ft").value,w=curW(),M=bmr()*S.profile.act+250;
  $("am").textContent="Manutenzione stimata ~"+R(M)+" kcal · target "+k+" kcal · P "+p+" g · C "+cb+" g · G "+f+" g"}
 function saveProf(){S.profile={sex:$("ps").value,age:num("pa"),h:num("ph"),w:num("pw"),act:parseFloat($("pc").value),goalW:num("pg_")};save();$("bm")&&render()}
 function addPh(){const n=$("fn").value.trim(),k=num("fk");if(!n||k<=0)return;S.phases.push({id:uid(),name:n,type:$("ft").value,start:$("fs").value||iso(new Date()),kcal:k,p:num("fp"),c:num("fc"),f:num("ff"),rest:num("fr_")});save();render()}
-function delPh(id){S.phases=S.phases.filter(x=>x.id!==id);save();render()}
+function delPh(id){del('phases',id)}
 function expo(){const t=JSON.stringify(S);$("bk").value=t;$("bk").select();try{navigator.clipboard.writeText(t)}catch(e){}S.lastBackup=Date.now();save();$("bm").textContent="Esportato: copia il testo."}
 function impo(){applyImport($("bk").value)}
 function render(){const y=window.scrollY,same=render.t===tab;render.t=tab;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));$("view").innerHTML=({oggi:vOggi,sch:vSch,trend:vTrend,piano:vPiano})[tab]();if(tab==="oggi"&&(add||rcpB))fl();if(tab==="oggi"&&rcpB)rcpUp();window.scrollTo(0,same?y:0)}

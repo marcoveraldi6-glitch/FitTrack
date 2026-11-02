@@ -1,6 +1,6 @@
 // FitTrack: service worker per l'uso offline.
 // Cambia il numero di versione qui sotto a ogni aggiornamento dell'app.
-const C = 'fittrack-v4';
+const C = 'fittrack-v5';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
