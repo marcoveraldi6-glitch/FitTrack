@@ -125,19 +125,23 @@ function startSess(id){const r=S.routines.find(x=>x.id===id);if(!r)return;unlock
  try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>wl=l).catch(()=>{})}catch(e){}
  render()}
 function chip(i,k){const it=ss.items[i];unlock();if(k<=it.done){it.done=k-1}else{it.done=k;startRest(it.rest)}render()}
-function endSess(){const dur=(Date.now()-ss.t0)/3600000,tot=ss.items.reduce((s,i)=>s+(i.act?0:i.done),0)||1,aM=ss.items.reduce((s,i)=>s+(i.act&&i.done?i.min:0),0),k=4*curW()*Math.max(0,dur-aM/60);
+function endSess(){const mi=$('sdm');if(mi&&mi.value)ss.mins=+mi.value;let mm=+ss.mins||0;const el=(Date.now()-ss.t0)/60000;
+ if(!mm&&el<5){const g=Math.max(15,Math.round(ss.items.reduce((t,i)=>t+(i.act?i.min:i.done*3),0))),v=prompt('Il timer ha misurato meno di 5 minuti. Quanti minuti è durato davvero l’allenamento?',String(g));if(v===null)return;mm=Math.max(1,parseFloat(String(v).replace(',','.'))||g)}
+ const dur=(mm||el)/60,tot=ss.items.reduce((s,i)=>s+(i.act?0:i.done),0)||1,aM=ss.items.reduce((s,i)=>s+(i.act&&i.done?i.min:0),0),k=4*curW()*Math.max(0,dur-aM/60);
  const prs=ss.items.filter(i=>!i.act&&i.done>0&&i.kg>0&&maxLoad(i.ex)>0&&i.kg>maxLoad(i.ex)).map(i=>i.ex+" "+i.kg+" kg");
  ss.items.forEach(i=>{if(i.act){if(i.done)S.work.push({id:uid(),date:iso(new Date()),exercise:'Attività · '+i.sport,act:true,min:i.min,sets:0,reps:0,kg:0,kcal:actK(i.sport,i.int,i.min)});return}if(i.done>0)S.work.push({id:uid(),date:iso(new Date()),exercise:i.ex,sets:i.done,reps:i.reps,kg:i.kg,rpe:i.rpe||0,kcal:k*i.done/tot})});
  if(wl){try{wl.release()}catch(e){}wl=null}rest=null;tick();msg="Allenamento salvato: "+R(k+ss.items.filter(i=>i.act&&i.done).reduce((s,i)=>s+actK(i.sport,i.int,i.min),0))+" kcal stimate in "+R(dur*60)+" min."+(prs.length?" 🏆 Nuovi record: "+prs.join(", ")+".":"");ss=null;save();render()}
 function stopSess(){ss=null;rest=null;tick();render()}
 function rbAdd(){const ex=$("bx").value;if(!ex)return;rb.name=$("bn").value;rb.items.push({ex,sets:num("bs")||3,reps:num("br")||10,kg:num("bw"),rest:num("bt")||90});render()}
+function rbSet(k,f,v,str){if(!rb.items[k])return;rb.items[k][f]=str?v:(parseFloat(v)||0)}
+function rbMove(k,d){const j=k+d;if(j<0||j>=rb.items.length)return;rb.name=$('bn').value;const t=rb.items[k];rb.items[k]=rb.items[j];rb.items[j]=t;render()}
 function rbDel(i){rb.name=$("bn").value;rb.items.splice(i,1);render()}
 function rbSave(){rb.name=$("bn").value.trim();if(!rb.name||!rb.items.length)return;const ex_=rb.id&&S.routines.find(x=>x.id===rb.id);if(ex_){ex_.name=rb.name;ex_.items=rb.items}else S.routines.push({id:uid(),name:rb.name,items:rb.items,days:[]});rb={name:"",items:[]};om.nb=false;save();render()}
 function vSch(){const m=msg;msg="";
  if(ss)return `<div class="card row"><div style="flex:1"><b>${esc(ss.name)}</b><br><span class="mut">Durata <span id="el">${mmss((Date.now()-ss.t0)/1000)}</span></span></div><button class="p" onclick="endSess()">Termina</button><button class="x" onclick="stopSess()">Annulla</button></div>`+
  ss.items.map((it,i)=>{if(it.act)return actItemCard(it,i);const l=lastOf(it.ex);return `<div class="card"><b>${i+1}. ${esc(it.ex)}</b><br><span class="mut">${it.sets}×${it.reps} · riposo ${it.rest}s${l?` · ultima: ${l.sets}×${l.reps} a ${l.kg} kg`:""}</span>${sgCard(it,i)}
  <div class="f2" style="margin:8px 0"><div><label>Carico kg</label><input type="number" step="0.5" inputmode="decimal" value="${it.kg||""}" onchange="ss.items[${i}].kg=+this.value||0"></div><div><label>Ripetizioni</label><input type="number" inputmode="numeric" value="${it.reps}" onchange="ss.items[${i}].reps=+this.value||0"></div><div><label>Sforzo (6 facile · 10 massimo)</label><select onchange="ss.items[${i}].rpe=+this.value||0"><option value="0">–</option>${[6,7,8,9,10].map(v=>`<option ${it.rpe===v?'selected':''}>${v}</option>`).join('')}</select></div></div>
- <div class="row seg" style="flex-wrap:wrap">${Array.from({length:it.sets},(_,k)=>`<button class="${k<it.done?"on":""}" style="flex:1;min-width:56px;padding:12px 0" onclick="chip(${i},${k+1})">${k+1}</button>`).join("")}</div></div>`}).join("")+'<p class="mut">Tocca il numero della serie quando l’hai finita: parte il riposo.</p>';
+ <div class="row seg" style="flex-wrap:wrap">${Array.from({length:it.sets},(_,k)=>`<button class="${k<it.done?"on":""}" style="flex:1;min-width:56px;padding:12px 0" onclick="chip(${i},${k+1})">${k+1}</button>`).join("")}</div></div>`}).join("")+`<div class="card"><label>Durata dell’allenamento in minuti (il timer segna ${mmss((Date.now()-ss.t0)/1000)})</label><input id="sdm" type="number" inputmode="numeric" placeholder="Lascia vuoto per usare il timer" value="${ss.mins||''}" onchange="ss.mins=+this.value||0"><button class="p" style="width:100%;margin-top:8px" onclick="endSess()">Termina e salva</button></div><p class="mut">Tocca il numero della serie quando l’hai finita: parte il riposo. Se ti sei già allenato e stai solo registrando, scrivi qui i minuti reali.</p>`;
  return (m?`<div class="card">${m}</div>`:"")+S.routines.map(r=>`<div class="card"><b>${esc(r.name)}</b><br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+" "+i.min+" min":esc(i.ex)+" "+i.sets+"×"+i.reps).join(" · ")}</span>
  <p class="mut" style="margin:8px 0 2px;font-size:11px">Giorni previsti (ti compare in Oggi)</p>
  <div class="row seg" style="margin:0;gap:4px">${DAYS.map((d,k)=>`<button class="${(r.days||[]).includes(k)?'on':''}" style="flex:1;padding:6px 0;font-size:12px" onclick="togDay('${r.id}',${k})">${d}</button>`).join('')}</div>
@@ -149,7 +153,10 @@ function vSch(){const m=msg;msg="";
  <p class="mut" style="margin:14px 0 4px">Oppure aggiungi un’attività (corsa, nuoto, calcio…)</p>
  <div class="f2"><div><label>Sport</label><select id="bas">${Object.keys(SPORT).map(k=>`<option>${k}</option>`).join('')}</select></div><div><label>Intensità</label><select id="bai"><option value="0">Leggera</option><option value="1" selected>Media</option><option value="2">Alta</option></select></div><div><label>Minuti</label><input id="bam" type="number" inputmode="numeric" value="40"></div></div>
  <button style="width:100%" onclick="rbAddAct()">+ Aggiungi attività alla scheda</button>
- <ul>${rb.items.map((i,k)=>`<li><div>${i.act?esc(i.sport):esc(i.ex)}<br><span class="mut">${i.act?i.min+' min · intensità '+INT[i.int]:i.sets+'×'+i.reps+' · '+(i.kg||0)+' kg · riposo '+i.rest+'s'}</span></div><button class="x" onclick="rbDel(${k})">×</button></li>`).join("")}</ul>
+ <ul>${rb.items.map((i,k)=>`<li style="flex-wrap:wrap"><div style="flex:1;min-width:0"><b>${k+1}. ${i.act?esc(i.sport):esc(i.ex)}</b></div><button onclick="rbMove(${k},-1)" ${k?'':'disabled'}>↑</button><button onclick="rbMove(${k},1)" ${k<rb.items.length-1?'':'disabled'}>↓</button><button class="x" onclick="rbDel(${k})">×</button>
+ ${i.act?`<div class="f2" style="flex:none;width:100%;margin:6px 0 0"><div style="flex:none"><label>Minuti</label><input type="number" inputmode="numeric" value="${i.min}" onchange="rbSet(${k},'min',this.value)"></div><div style="flex:none"><label>Intensità</label><select onchange="rbSet(${k},'int',this.value)">${INT.map((n,j)=>`<option value="${j}" ${j==i.int?'selected':''}>${n}</option>`).join('')}</select></div></div>`:
+ `<select style="flex:none;width:100%;margin-top:6px" onchange="rbSet(${k},'ex',this.value,1)">${(S.exercises.includes(i.ex)?S.exercises:[i.ex,...S.exercises]).map(e=>`<option ${e===i.ex?'selected':''}>${esc(e)}</option>`).join('')}</select>
+ <div style="flex:none;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px"><div style="flex:none"><label>Serie</label><input type="number" inputmode="numeric" value="${i.sets}" onchange="rbSet(${k},'sets',this.value)"></div><div style="flex:none"><label>Rip.</label><input type="number" inputmode="numeric" value="${i.reps}" onchange="rbSet(${k},'reps',this.value)"></div><div style="flex:none"><label>Kg</label><input type="number" step="0.5" inputmode="decimal" value="${i.kg||''}" onchange="rbSet(${k},'kg',this.value)"></div><div style="flex:none"><label>Riposo s</label><input type="number" inputmode="numeric" value="${i.rest}" onchange="rbSet(${k},'rest',this.value)"></div></div>`}</li>`).join("")}</ul>
  <button class="p" style="width:100%;margin-top:8px" onclick="rbSave()">${rb.id?'Salva modifiche':'Salva scheda'}</button>${rb.id?'<button style="width:100%;margin-top:8px" onclick="rbCancel()">Annulla modifica</button>':''}</details>`+vManual()}
 
 /* ---------- viste ---------- */
@@ -237,9 +244,10 @@ function measChart(){const a=[...S.meas].filter(x=>x[mSel]>0).sort((p,q)=>p.date
 function weeks(n){const mon=new Date();mon.setHours(12,0,0,0);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));const o=[];for(let i=n-1;i>=0;i--){const a=new Date(mon);a.setDate(a.getDate()-i*7);const days=[];for(let j=0;j<7;j++){const d=new Date(a);d.setDate(d.getDate()+j);days.push(iso(d))}o.push({s:iso(a),days})}return o}
 function wkCards(){const ws=weeks(Math.max(4,Math.ceil(rng/7))),d=ws.map(w=>w.s);
  const avg=k=>ws.map(w=>{const ds=w.days.filter(x=>S.meals.some(m=>m.date===x));return ds.length?ds.reduce((t,x)=>t+stats(x)[k],0)/ds.length:null});
- const vv=ws.map(w=>{const v=S.work.filter(x=>w.days.includes(x.date)).reduce((t,x)=>t+(+x.sets||0)*(+x.reps||0)*(+x.kg||0),0);return v>0?v:null});const vm=ws.map(w=>{const t=S.work.filter(x=>x.act&&w.days.includes(x.date)).reduce((s,x)=>s+(+x.min||0),0);return t>0?t:null});
+ const vc=ws.map(w=>{const n=new Set(S.work.filter(x=>w.days.includes(x.date)).map(x=>x.date)).size;return n||null});const vv=ws.map(w=>{const v=S.work.filter(x=>w.days.includes(x.date)).reduce((t,x)=>t+(+x.sets||0)*(+x.reps||0)*(+x.kg||0),0);return v>0?v:null});const vm=ws.map(w=>{const t=S.work.filter(x=>x.act&&w.days.includes(x.date)).reduce((s,x)=>s+(+x.min||0),0);return t>0?t:null});
  return `<h3>Calorie medie al giorno · per settimana</h3><div class="card">${bars(d,avg('intake'),false)}<span class="mut">Solo giorni con pasti registrati.</span></div>
  <h3>Proteine medie al giorno (g) · per settimana</h3><div class="card">${bars(d,avg('p'),false)}</div>
+ <h3>Giorni di allenamento · per settimana</h3><div class="card">${bars(d,vc,false)}</div>
  <h3>Volume di allenamento · per settimana</h3><div class="card">${bars(d,vv,false)}<span class="mut">Serie × ripetizioni × kg.</span></div>
  <h3>Minuti di attività · per settimana</h3><div class="card">${bars(d,vm,false)}</div>`}
 function recCard(){const rows=S.exercises.map(ex=>{const a=S.work.filter(x=>x.exercise===ex&&+x.kg>0);if(!a.length)return null;const b=a.reduce((m,x)=>(+x.kg>+m.kg||(+x.kg===+m.kg&&x.date>m.date))?x:m);return{ex,kg:+b.kg,reps:b.reps,date:b.date,pr:maxLoad(ex,b.date)>0}}).filter(Boolean).sort((a,b)=>a.date<b.date?1:-1);
@@ -273,7 +281,7 @@ function pu(){const s=$('pu').value,i=$('pg');i.value=s==='g'?100:1;i.step=s==='
 const DAYS=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],INT=['leggera','media','alta'];
 const actK=(sp,i,min)=>Math.max(0,R((SPORT[sp][i]-1)*curW()*min/60));
 function rbAddAct(){rb.name=$("bn").value;rb.items.push({act:true,sport:$("bas").value,int:+$("bai").value,min:num("bam")||30});render()}
-function rbEdit(id){const r=S.routines.find(x=>x.id===id);if(!r)return;rb={id:r.id,name:r.name,items:JSON.parse(JSON.stringify(r.items))};render();try{$("bn").scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}}
+function rbEdit(id){const r=S.routines.find(x=>x.id===id);if(!r)return;rb={id:r.id,name:r.name,items:JSON.parse(JSON.stringify(r.items))};om.nb=true;render();try{$("bn").scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}}
 function rbCancel(){rb={name:"",items:[]};render()}
 function rbDup(id){const r=S.routines.find(x=>x.id===id);if(!r)return;S.routines.push({id:uid(),name:r.name+" (copia)",items:JSON.parse(JSON.stringify(r.items)),days:[]});save();render()}
 function togDay(id,k){const r=S.routines.find(x=>x.id===id);if(!r)return;r.days=r.days||[];const i=r.days.indexOf(k);if(i<0)r.days.push(k);else r.days.splice(i,1);save();render()}
@@ -284,7 +292,7 @@ function planCard(){const k=(new Date().getDay()+6)%7,rs=S.routines.filter(r=>(r
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='4.3';
+const VER='4.6';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
@@ -344,6 +352,21 @@ function dash2(){const w=curW(),h=S.profile.h/100,bmi=h>0?w/(h*h):0,cat=bmi<18.5
   else{const dd=rem/sl;eta=dd>730?'Al ritmo attuale ci vorranno oltre 2 anni.':'Al ritmo attuale ci arrivi verso il <b>'+new Date(Date.now()+dd*864e5).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})+'</b>.'}
   goal=`<div class="pb"><i style="width:${pc}%"></i></div><p class="mut" style="margin:6px 0 0;font-size:12px">Obiettivo ${g} kg · mancano ${Math.abs(rem).toFixed(1)} kg · ${eta}</p>`}
  return `<div class="card"><div class="row" style="margin:0"><div style="flex:1"><span class="mut">Peso${bmi?' · BMI '+bmi.toFixed(1)+' ('+cat+')':''}</span><div style="font-size:24px;font-weight:700">${w.toFixed(1)} <span class="mut" style="font-size:14px">kg</span></div></div><input id="wv" type="number" step="0.1" inputmode="decimal" placeholder="${day===iso(new Date())?'Oggi':fd(day)}" value="${wt?wt.kg:''}" style="max-width:88px"><button class="p" onclick="setW()">Salva</button></div>${goal}</div>`}
+/* calendario allenamenti */
+let cmOff=0,cSel=null;
+function calCard(){const b=new Date();b.setDate(1);b.setHours(12,0,0,0);b.setMonth(b.getMonth()+cmOff);
+ const y=b.getFullYear(),m=b.getMonth(),first=(new Date(y,m,1).getDay()+6)%7,nd=new Date(y,m+1,0).getDate(),today=iso(new Date()),wd={};
+ S.work.forEach(x=>{(wd[x.date]=wd[x.date]||[]).push(x)});
+ let cells='',cnt=0;for(let i=0;i<first;i++)cells+='<div></div>';
+ for(let d=1;d<=nd;d++){const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),w=wd[ds],tr=!!w;if(tr)cnt++;
+  const pl=!tr&&ds>=today&&S.routines.some(r=>(r.days||[]).includes(dow(ds))),g=tr&&w.some(x=>!x.act),a=tr&&w.some(x=>x.act);
+  const bg=tr?(g&&a?'background:linear-gradient(135deg,var(--ac) 50%,var(--ok) 50%);':g?'background:var(--ac);':'background:var(--ok);')+'color:#fff;border-color:transparent;':'';
+  cells+=`<button onclick="cSel='${ds}';render()" style="aspect-ratio:1;padding:0;border-radius:50%;font-size:14px;${bg}${pl?'border:1.5px dashed var(--ac);':''}${ds===today?'font-weight:800;text-decoration:underline;':''}${cSel===ds?'outline:2px solid var(--tx);':''}">${d}</button>`}
+ const sel=cSel&&wd[cSel]?wd[cSel]:null;
+ const det=cSel?`<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:8px"><b>${new Date(cSel+'T12:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</b>${sel?`<ul>${sel.map(x=>`<li><div>${esc(x.exercise)}<br><span class="mut">${x.act?x.min+' min · '+R(x.kcal)+' kcal':x.sets+'×'+x.reps+' a '+x.kg+' kg · '+R(x.kcal)+' kcal'}</span></div></li>`).join('')}</ul><p class="mut" style="margin:4px 0 0">Totale ${R(sum(sel,'kcal'))} kcal bruciate</p>`:'<p class="mut" style="margin:4px 0 0">Nessun allenamento registrato.</p>'}<button style="width:100%;margin-top:8px" onclick="day='${cSel}';tab='oggi';render()">Apri questo giorno</button></div>`:'';
+ return dt('tc','<b>Calendario allenamenti</b>',`<div class="row" style="margin:8px 0"><button onclick="cmOff--;cSel=null;render()">‹</button><div style="flex:1;text-align:center"><b>${new Date(y,m,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'})}</b><br><span class="mut" style="font-size:12px">${cnt} giorni di allenamento</span></div><button onclick="cmOff=Math.min(0,cmOff+1);cSel=null;render()" ${cmOff>=0?'disabled style="opacity:.4"':''}>›</button></div>
+ <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center">${['L','M','M','G','V','S','D'].map(l=>`<span class="mut" style="font-size:12px">${l}</span>`).join('')}${cells}</div>
+ <p class="mut" style="font-size:12px;margin:8px 0 0"><span style="color:var(--ac)">●</span> pesi · <span style="color:var(--ok)">●</span> attività · ◌ previsto dalla scheda · tocca un giorno per i dettagli</p>${det}`,true)}
 /* riepilogo settimanale */
 function wkSummary(){const mon=new Date();mon.setHours(12,0,0,0);mon.setDate(mon.getDate()-((mon.getDay()+6)%7)-7*wOff);
  const mk=m=>{const a=[];for(let j=0;j<7;j++){const d=new Date(m);d.setDate(d.getDate()+j);a.push(iso(d))}return a};
@@ -404,7 +427,7 @@ function vTrend(){const dates=[];for(let i=rng-1;i>=0;i--){const d=new Date();d.
  const mxk=dates.map(d=>{const a=ew.filter(x=>x.date===d);return a.length?Math.max(...a.map(x=>+x.kg||0)):null});
  const vol=dates.map(d=>{const a=ew.filter(x=>x.date===d);return a.length?a.reduce((s,x)=>s+x.sets*x.reps*x.kg,0):null});
  const nh=h=>h.replace(/<h3>.*?<\/h3>/,'');
- return `<div style="font-size:22px;font-weight:700;margin:4px 0 10px">Progressi</div>${wkSummary()}${adaptCard(1)}
+ return `<div style="font-size:22px;font-weight:700;margin:4px 0 10px">Progressi</div>${wkSummary()}${calCard()}${adaptCard(1)}
  <div class="row seg">${[14,30,90].map(n=>`<button class="${n===rng?"on":""}" style="flex:1" onclick="rng=${n};render()">${n} giorni</button>`).join("")}</div>
  <div class="card"><b>Peso (kg)</b> <span class="mut">linea spessa = media 7 giorni</span>${line(dates,[w,ma],[COL[0],COL[1]])}</div>
  <div class="card"><b>Bilancio calorico</b>${bars(dates,bal,true)}<span class="mut">Blu = surplus, verde = deficit${avg!==null?" · media "+(avg>0?"+":"")+avg+" kcal/giorno":""}</span></div>
