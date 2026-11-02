@@ -46,14 +46,14 @@ summary{cursor:pointer;padding:2px 0}details>summary b{font-size:16px}
 <div id="sync" class="mut" style="text-align:center;font-size:11px;padding-top:8px"></div>
 <main id="view"></main>
 <nav>
-<button data-t="oggi" onclick="tab='oggi';render()"><span style="display:block;font-size:19px">🏠</span>Oggi</button>
+<button data-t="oggi" onclick="tab='oggi';render()"><span style="display:block;font-size:19px">🏠</span>Home</button>
 <button data-t="cibo" onclick="tab='cibo';render()"><span style="display:block;font-size:19px">🍽️</span>Cibo</button>
 <button data-t="sch" onclick="tab='sch';render()"><span style="display:block;font-size:19px">🏋️</span>Allenamento</button>
 <button data-t="trend" onclick="tab='trend';render()"><span style="display:block;font-size:19px">📈</span>Progressi</button>
 </nav>
 <div id="rt" hidden></div>
 <div id="ut" hidden></div>
-<div id="sc" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;padding:16px;flex-direction:column;gap:12px"><div style="color:#fff;text-align:center">Inquadra il codice a barre del prodotto</div><div id="sht" style="color:#fff;text-align:center;font-size:13px;min-height:34px"></div><input id="scz" type="range" hidden oninput="scnZoom(this.value)" style="max-width:420px;margin:auto"><div id="rd" style="width:100%;max-width:420px;margin:auto"></div><button onclick="scanStop();$('bf2').click()">📸 Usa una foto (con zoom)</button><button class="p" onclick="scanStop()">Chiudi</button></div>
+<div id="sc" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;padding:16px;flex-direction:column;gap:12px"><div style="color:#fff;text-align:center">Inquadra il codice a barre del prodotto</div><div id="sht" style="color:#fff;text-align:center;font-size:13px;min-height:34px"></div><div style="color:#fff;font-size:13px;text-align:center;margin-top:2px">Zoom <span id="scv">30%</span></div><input id="scz" type="range" min="1" max="3" step="0.1" value="1.3" oninput="scZoomLive(this.value)" onchange="scZoomSet(this.value)" style="max-width:420px;margin:0 auto" aria-label="Zoom"><div style="width:100%;max-width:420px;margin:auto;overflow:hidden;border-radius:12px"><div id="rd" style="width:100%"></div></div><button onclick="scanStop();$('bf2').click()">📸 Usa una foto (con zoom)</button><button class="p" onclick="scanStop()">Chiudi</button></div>
 <div id="ph" style="display:none;position:fixed;inset:0;background:#000;z-index:30;flex-direction:column;padding:12px;gap:8px">
 <div style="color:#fff;text-align:center;font-size:14px">Ingrandisci (pizzica o usa il cursore) e trascina finché le barre riempiono il riquadro verde</div>
 <div id="phb" style="position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;background:#111;border-radius:12px"><canvas id="phc" style="position:absolute;left:0;top:0;width:100%;height:100%"></canvas><div style="position:absolute;left:5%;right:5%;top:35%;height:30%;border:2px solid #22c55e;border-radius:8px;pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.45)"></div></div>
@@ -149,7 +149,7 @@ function vSch(){const m=msg;msg="";
  <div class="f2" style="margin:8px 0"><div><label>Carico kg</label><input type="number" step="0.5" inputmode="decimal" value="${it.kg||""}" onchange="ss.items[${i}].kg=+this.value||0"></div><div><label>Ripetizioni</label><input type="number" inputmode="numeric" value="${it.reps}" onchange="ss.items[${i}].reps=+this.value||0"></div><div><label>Sforzo (6 facile · 10 massimo)</label><select onchange="ss.items[${i}].rpe=+this.value||0"><option value="0">–</option>${[6,7,8,9,10].map(v=>`<option ${it.rpe===v?'selected':''}>${v}</option>`).join('')}</select></div></div>
  <div class="row seg" style="flex-wrap:wrap">${Array.from({length:it.sets},(_,k)=>`<button class="${k<it.done?"on":""}" style="flex:1;min-width:56px;padding:12px 0" onclick="chip(${i},${k+1})">${k+1}</button>`).join("")}</div></div>`}).join("")+`<div class="card"><label>Durata dell’allenamento in minuti (il timer segna ${mmss((Date.now()-ss.t0)/1000)})</label><input id="sdm" type="number" inputmode="numeric" placeholder="Lascia vuoto per usare il timer" value="${ss.mins||''}" onchange="ss.mins=+this.value||0"><button class="p" style="width:100%;margin-top:8px" onclick="endSess()">Termina e salva</button></div><p class="mut">Tocca il numero della serie quando l’hai finita: parte il riposo. Se ti sei già allenato e stai solo registrando, scrivi qui i minuti reali.</p>`;
  if(sSeg==='cal')return (m?`<div class="card">${m}</div>`:"")+segCtl()+`<div class="card">${calBody()}</div>`;
- return (m?`<div class="card">${m}</div>`:"")+segCtl()+weekStrip()+S.routines.map(r=>`<div class="card"><b>${esc(r.name)}</b><br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+" "+i.min+" min":esc(i.ex)+" "+i.sets+"×"+i.reps).join(" · ")}</span>
+ return (m?`<div class="card">${m}</div>`:"")+segCtl()+weekStrip()+[...S.routines].sort((a,b)=>tod(b)-tod(a)).map(r=>`<div class="card"><b>${esc(r.name)}</b>${tod(r)?' <span style="color:var(--ac);font-size:13px;font-weight:600">· oggi</span>':''}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+" "+i.min+" min":esc(i.ex)+" "+i.sets+"×"+i.reps).join(" · ")}</span>
  <p class="mut" style="margin:8px 0 2px;font-size:11px">Giorni previsti (ti compare in Oggi)</p>
  <div class="row seg" style="margin:0;gap:4px">${DAYS.map((d,k)=>`<button class="${(r.days||[]).includes(k)?'on':''}" style="flex:1;padding:6px 0;font-size:12px" onclick="togDay('${r.id}',${k})">${d}</button>`).join('')}</div>
  <div class="row" style="margin-top:8px"><button class="p" style="flex:1" onclick="startSess('${r.id}')">Avvia</button><button onclick="rbEdit('${r.id}')">Modifica</button><button onclick="rbDup('${r.id}')">Duplica</button><button class="x" onclick="del('routines','${r.id}')">Elimina</button></div></div>`).join("")+
@@ -200,12 +200,15 @@ let scn=null,scnH=null;
 function loadScript(u){return new Promise((ok,ko)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>ko(new Error('script'));document.head.appendChild(e)})}
 async function loadQr(){if(typeof Html5Qrcode!=='undefined')return true;for(const u of ['https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js','https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js']){try{await loadScript(u);if(typeof Html5Qrcode!=='undefined')return true}catch(e){}}return false}
 const qrCfg=()=>{const F=Html5QrcodeSupportedFormats;return{formatsToSupport:[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128],verbose:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}}};
-function scnZoom(v){try{scn.getRunningTrackCameraCapabilities().zoomFeature().apply(+v)}catch(e){}}
-async function scanStop(){const zz=$('scz');if(zz)zz.hidden=true;clearTimeout(scnH);const hh=$('sht');if(hh)hh.textContent='';if(scn){try{await scn.stop()}catch(e){}try{scn.clear()}catch(e){}scn=null}$('sc').style.display='none'}
-async function scanStart(){$('sm').textContent='Avvio la fotocamera...';
+let scZ=1.3;
+function scApply(){const r=$('rd');r.style.transform='scale('+scZ+')';r.style.transformOrigin='center center';const v=$('scv');if(v)v.textContent=Math.round((scZ-1)*100)+'%';const z=$('scz');if(z)z.value=scZ}
+function scZoomLive(v){scZ=+v;scApply()}
+async function scZoomSet(v){scZ=+v;scApply();if(!scn)return;try{await scn.stop()}catch(e){}try{scn.clear()}catch(e){}scn=null;await scanStart(true)}
+async function scanStop(){clearTimeout(scnH);const hh=$('sht');if(hh)hh.textContent='';if(scn){try{await scn.stop()}catch(e){}try{scn.clear()}catch(e){}scn=null}$('sc').style.display='none'}
+async function scanStart(again){if(!again)$('sm').textContent='Avvio la fotocamera...';
  if(!await loadQr()){$('sm').textContent='Scanner non caricato: serve internet. Prova “Foto al codice” o scrivi il numero.';return}
  $('sc').style.display='flex';
- try{scn=new Html5Qrcode('rd',qrCfg());await scn.start({facingMode:'environment'},{fps:15,qrbox:(w,h)=>({width:Math.floor(w*.85),height:Math.floor(Math.min(h*.4,w*.3))}),videoConstraints:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}},async t=>{await scanStop();lookup(t)},()=>{});$('sm').textContent='';try{const z=scn.getRunningTrackCameraCapabilities().zoomFeature();if(z.isSupported()){const e=$('scz');e.min=z.min();e.max=z.max();e.step=z.step()||0.1;e.value=z.min();e.hidden=false}}catch(e){}clearTimeout(scnH);scnH=setTimeout(()=>{const h=$('sht');if(scn&&h)h.textContent='Non lo legge? Tocca “Usa una foto (con zoom)”: potrai ingrandire il codice prima di leggerlo.'},7000)}
+ try{scApply();scn=new Html5Qrcode('rd',qrCfg());await scn.start({facingMode:'environment'},{fps:15,qrbox:(w,h)=>({width:Math.floor(w*Math.min(.9,.85/scZ)),height:Math.floor(Math.min(h*.4,w*.3)/scZ)}),videoConstraints:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}},async t=>{await scanStop();lookup(t)},()=>{});$('sm').textContent='';scApply();clearTimeout(scnH);scnH=setTimeout(()=>{const h=$('sht');if(scn&&h)h.textContent='Non lo legge? Tocca “Usa una foto (con zoom)”: potrai ingrandire il codice prima di leggerlo.'},7000)}
  catch(e){await scanStop();$('sm').textContent='Fotocamera non disponibile ('+((e&&(e.name||e.message))||e)+'). Usa “Foto al codice” o scrivi il numero.'}}
 let phI=null,ph={z:1,cx:0,cy:0},tp=null;
 const loadImg=f=>new Promise((ok,ko)=>{const u=URL.createObjectURL(f),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=()=>{URL.revokeObjectURL(u);ko(new Error('img'))};i.src=u});
@@ -259,11 +262,10 @@ function vOggi(){const s=stats(day),ph=phaseOn(day),dt_=dayT(day),t=dt_?dt_.k:0,
  return bkCard()+startCard()+`<div class="row"><button onclick="go(-1)">‹</button><input type="date" value="${day}" onchange="day=this.value||day;render()"><button onclick="go(1)">›</button><button aria-label="Impostazioni" onclick="tab='piano';render()">⚙️</button></div>`+`<div class="card"><div class="row" style="margin:0"><div style="flex:1"><span class="mut">${ph?esc(ph.name)+(tag?' · '+tag:''):'Nessuna fase impostata'}</span><div style="font-size:30px;font-weight:700">${R(s.intake)}<span class="mut" style="font-size:15px">${t?' / '+R(t)+' kcal':' kcal'}</span></div></div>${left!==null?`<div style="text-align:right"><span class="mut">${left>=0?'Restano':'Oltre'}</span><div style="font-size:22px;font-weight:700">${Math.abs(left)}</div></div>`:''}</div>${t?`<div class="pb"><i style="width:${Math.min(100,s.intake/t*100)}%"></i></div>`:''}
  <div class="row" style="margin:12px 0 0;gap:12px">${mb('Proteine',s.p,dt_&&dt_.p,COL[0])}${mb('Carbo',s.c,dt_&&dt_.c,COL[3])}${mb('Grassi',s.f,dt_&&dt_.f,COL[1])}</div>
  <p class="mut" style="margin:10px 0 0;font-size:12px">${dt_&&dt_.bonus?'Target +'+dt_.bonus+' kcal grazie all’allenamento · ':''}Spesa stimata ${R(s.base+s.burned)} kcal · bilancio ${s.bal>0?'+':''}${R(s.bal)} kcal</p></div>
- ${planCard()}
- ${workCard()}
  ${dash2()}
  ${adaptCard()?`<button style="width:100%;margin-bottom:10px;text-align:left" onclick="tab='trend';render()">💡 C’è un consiglio sul tuo obiettivo · vedi in Progressi</button>`:''}
- <div class="card" style="padding:4px 14px">${SL.map((sl,k)=>{const it=s.m.filter(m=>(m.slot||'Spuntini')===sl);return `<div class="row" style="margin:0;min-height:56px;${k?'border-top:1px solid var(--bd);':''}"><div style="flex:1" onclick="add='${sl}';tab='cibo';render()"><b>${sl}</b> <span class="mut">· ${R(sum(it,'kcal'))} kcal${it.length?' · '+it.length+' alimenti':''}</span></div><button class="p" aria-label="Aggiungi a ${sl.toLowerCase()}" style="width:44px;height:44px;border-radius:22px;padding:0;font-size:22px;line-height:1" onclick="add='${sl}';tab='cibo';render()">+</button></div>`}).join('')}</div>`}
+ <div class="card" style="padding:4px 14px">${SL.map((sl,k)=>{const it=s.m.filter(m=>(m.slot||'Spuntini')===sl);return `<div class="row" style="margin:0;min-height:56px;${k?'border-top:1px solid var(--bd);':''}"><div style="flex:1" onclick="add='${sl}';tab='cibo';render()"><b>${sl}</b> <span class="mut">· ${R(sum(it,'kcal'))} kcal${it.length?' · '+it.length+' alimenti':''}</span></div><button class="p" aria-label="Aggiungi a ${sl.toLowerCase()}" style="width:44px;height:44px;border-radius:22px;padding:0;font-size:22px;line-height:1" onclick="add='${sl}';tab='cibo';render()">+</button></div>`}).join('')}</div>
+ ${planCard()}${workCard()}`}
 function setW(){const v=num("wv");if(v>0){S.weights=S.weights.filter(x=>x.date!==day);S.weights.push({date:day,kg:v});save();render()}}
 function addMeal(){const k=num("mk");if(k<=0)return;S.meals.push({id:uid(),date:day,name:$("mn").value.trim(),kcal:k,p:num("mp"),c:num("mc"),f:num("mf")});save();render()}
 
@@ -326,11 +328,11 @@ function togDay(id,k){const r=S.routines.find(x=>x.id===id);if(!r)return;r.days=
 function actDone(i){ss.items[i].done=ss.items[i].done?0:1;render()}
 function actItemCard(it,i){return `<div class="card"><b>${i+1}. ${esc(it.sport)}</b><br><span class="mut">Intensità ${INT[it.int]} · stima ${actK(it.sport,it.int,it.min)} kcal</span>
  <div class="row" style="margin:8px 0 0"><div style="flex:1"><label>Minuti</label><input type="number" inputmode="numeric" value="${it.min}" onchange="ss.items[${i}].min=+this.value||0;render()"></div><button class="${it.done?'p':''}" style="flex:1;padding:12px 0" onclick="actDone(${i})">${it.done?'✓ Fatta':'Segna come fatta'}</button></div></div>`}
-function planCard(){const k=(new Date().getDay()+6)%7,rs=S.routines.filter(r=>(r.days||[]).includes(k));if(!rs.length)return '';
+function planCard(){if(day!==iso(new Date()))return '';const k=(new Date().getDay()+6)%7,rs=S.routines.filter(r=>(r.days||[]).includes(k));if(!rs.length)return '';
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='5.0';
+const VER='5.2';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
@@ -430,6 +432,7 @@ function startCard(){if(S.phases.length)return '';return `<div class="card" styl
 function applyTheme(){const t=S.theme||'auto',r=document.documentElement;if(t==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);try{const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='dark'?'#0f1115':t==='light'?'#f6f7f9':'#0a84ff'}catch(e){}}
 function setTheme(t){S.theme=t;save();applyTheme();render()}
 const dt=(k,t,b,d)=>`<details class="card" ${(om[k]===undefined?d:om[k])?'open':''} ontoggle="om['${k}']=this.open"><summary>${t}</summary><div>${b}</div></details>`;
+const tod=r=>(r.days||[]).includes((new Date().getDay()+6)%7)?1:0;
 let sSeg='sch';
 const segCtl=()=>`<div style="font-size:26px;font-weight:700;margin:2px 0 10px">Allenamento</div><div class="row seg" style="background:var(--bd);border-radius:12px;padding:3px;gap:0"><button class="${sSeg==='sch'?'on':''}" style="flex:1;border:0" onclick="sSeg='sch';render()">Schede</button><button class="${sSeg==='cal'?'on':''}" style="flex:1;border:0" onclick="sSeg='cal';render()">Calendario</button></div>`;
 function weekStrip(){const w=weeks(1)[0].days,today=iso(new Date());let done=0,plan=0;
