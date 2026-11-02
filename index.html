@@ -189,15 +189,17 @@ async function onlineSearch(){const q=$('fq').value.trim();if(q.length<2){$('sm'
  if(!list||!list.length){try{const j=await jget('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+'&search_simple=1&action=process&json=1&page_size=24&fields='+OFF_F,15000);list=j.products||[];err=''}catch(e){err=err||errT(e)}}
  res=(list||[]).map(offMap).filter(Boolean).slice(0,15);showRes();
  $('sm').textContent=res.length?'Risultati online (☁): valori per 100 g, controlla sempre l’etichetta.':(err?'Ricerca online non riuscita ('+err+'). Riprova tra poco.':'Nessun risultato online: prova con meno parole.')}
+let pendCode='';
 const okEan=c=>{c=String(c||'').replace(/\D/g,'');if(![8,12,13].includes(c.length))return false;let t=0;for(let i=c.length-2,w=3;i>=0;i--,w=4-w)t+=+c[i]*w;return(10-t%10)%10===+c[c.length-1]};
 const chkE=t=>{if(!okEan(t))throw new Error('bad');return t};
 async function lookup(code){code=String(code||'').replace(/\D/g,'');if(!okEan(code)){$('sm').textContent='Codice non valido: controlla le cifre (EAN a 8 o 13 cifre).';return}
+ const loc=S.foods.find(f=>f.bc===code);if(loc){res=[{...loc,tag:'✎'}];showRes();$('sm').textContent='';pickF(0);return}
  $('sm').textContent='Cerco '+code+'...';
  try{const c=new AbortController(),tm=setTimeout(()=>c.abort(),12000);let r;try{r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+code+'?json=1&fields='+OFF_F,{signal:c.signal})}finally{clearTimeout(tm)}
   let j=null;try{j=await r.json()}catch(e){}
   const x=j&&j.status===1?offMap(j.product):null;
   if(x){res=[x];showRes();$('sm').textContent='';pickF(0);return}
-  if(r.status===404||(j&&j.status===0)){$('sm').textContent='Prodotto '+code+' non presente nel database o senza valori nutrizionali: crealo come alimento personalizzato.';return}
+  if(r.status===404||(j&&j.status===0)){pendCode=code;om.cf=true;render();$('sm').textContent='Prodotto '+code+' non trovato nel database. Compila qui sotto i valori dell’etichetta (per 100 g) e salvalo: la prossima volta lo ritrovi scansionando lo stesso codice.';try{$('cn').value='Prodotto '+code;$('cn').scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}return}
   throw new Error('HTTP '+r.status)}
  catch(e){$('sm').textContent='Ricerca non riuscita ('+errT(e)+'): riprova tra poco.'}}
 let scn=null,scnH=null;
@@ -247,7 +249,7 @@ function phClose(){phI=null;$('ph').style.display='none'}
 function pickF(i){pick=res[i];$('pk').innerHTML=`<div class="row" style="margin:0 0 8px"><b style="flex:1">${esc(pick.n)}</b><button id="fvb" onclick="togFav()">${isFav(pick)?'★ Preferito':'☆ Preferito'}</button></div><div class="row"><input id="pg" type="number" inputmode="decimal" value="${pick.por?1:100}" step="${pick.por?0.5:1}" oninput="pv()" style="max-width:38%"><select id="pu" onchange="pu()">${(pick.por||[]).map((p,i)=>`<option value="${i}">${esc(p[0])} (${p[1]} g)</option>`).join('')}<option value="g">grammi</option></select></div><div id="pp" class="mut" style="margin-bottom:8px"></div><button class="p" style="width:100%" onclick="addF()">${rcpB?'Aggiungi alla ricetta':'Aggiungi a '+add}</button>`;pv()}
 function pv(){const x=gq(),r=x.g/100;$('pp').textContent=R(pick.k*r)+' kcal · P '+(pick.p*r).toFixed(1)+' · C '+(pick.c*r).toFixed(1)+' · G '+(pick.f*r).toFixed(1)}
 function addF(){const x=gq(),g=x.g;if(g<=0)return;const r=g/100;if(rcpB){rcpKeep();rcpB.items.push({name:pick.n+' · '+x.t,kcal:pick.k*r,p:pick.p*r,c:pick.c*r,f:pick.f*r});touch(pick);pick=null;save();render();return}touch(pick);S.meals.push({id:uid(),date:day,slot:add,name:pick.n+' · '+x.t,kcal:pick.k*r,p:pick.p*r,c:pick.c*r,f:pick.f*r});if(pick.o&&!S.foods.some(x=>x.n===pick.n))S.foods.push({n:pick.n,k:pick.k,p:pick.p,c:pick.c,f:pick.f,por:pick.por||undefined});pick=null;save();render()}
-function addCF(){const n=$('cn').value.trim();if(!n)return;const pg=num('cpg'),pn=$('cpn').value.trim()||'porzione';S.foods.push({n,k:num('ck'),p:num('cp'),c:num('cc'),f:num('cf'),por:pg>0?[[pn,pg]]:undefined});save();render()}
+function addCF(){const n=$('cn').value.trim();if(!n)return;const pg=num('cpg'),pn=$('cpn').value.trim()||'porzione';S.foods.push({n,k:num('ck'),p:num('cp'),c:num('cc'),f:num('cf'),por:pg>0?[[pn,pg]]:undefined,bc:pendCode||undefined});pendCode='';om.cf=false;save();render()}
 function saveMeal(sl){const n=$('sn'+SL.indexOf(sl)).value.trim();if(!n)return;S.saved.push({id:uid(),name:n,items:S.meals.filter(m=>m.date===day&&(m.slot||'Spuntini')===sl).map(m=>({name:m.name,kcal:m.kcal,p:m.p,c:m.c,f:m.f}))});save();render()}
 function useSaved(id){const s=S.saved.find(x=>x.id===id);if(!s)return;s.items.forEach(m=>S.meals.push({...m,id:uid(),date:day,slot:add}));save();render()}
 function copyPrev(){const d=new Date(day+'T12:00:00');d.setDate(d.getDate()-1);const p=iso(d);S.meals.filter(m=>m.date===p&&(m.slot||'Spuntini')===add).forEach(m=>S.meals.push({...m,id:uid(),date:day}));save();render()}
@@ -260,7 +262,7 @@ function vAdd(){const all=stats(day).m,it=all.filter(m=>(m.slot||'Spuntini')===a
  ${rcpList()}
  ${S.saved.length?`<div class="card"><b>Pasti salvati</b><ul>${S.saved.map(s=>`<li><div>${esc(s.name)}<br><span class="mut">${R(sum(s.items,'kcal'))} kcal</span></div><button onclick="useSaved('${s.id}')">Aggiungi</button><button class="x" onclick="del('saved','${s.id}')">×</button></li>`).join('')}</ul></div>`:''}
  <button style="width:100%;margin-bottom:10px" onclick="copyPrev()">Copia ${add.toLowerCase()} del giorno prima</button>
- <details class="card"><summary><b>Nuovo alimento personalizzato</b></summary><p class="mut">Valori per 100 g (li trovi poi nella ricerca con ✎)</p><input id="cn" placeholder="Nome"><div class="f2" style="margin:8px 0"><div><label>kcal</label><input id="ck" type="number"></div><div><label>Proteine</label><input id="cp" type="number"></div><div><label>Carboidrati</label><input id="cc" type="number"></div><div><label>Grassi</label><input id="cf" type="number"></div></div><div class="f2"><div><label>Porzione: nome (facoltativo)</label><input id="cpn" placeholder="es. fetta"></div><div><label>Grammi per porzione</label><input id="cpg" type="number"></div></div><button class="p" style="width:100%" onclick="addCF()">Salva alimento</button></details>`}
+ <details class="card" ${om.cf?'open':''} ontoggle="om.cf=this.open"><summary><b>Nuovo alimento personalizzato</b></summary><p class="mut">Valori per 100 g (li trovi poi nella ricerca con ✎)</p><input id="cn" placeholder="Nome"><div class="f2" style="margin:8px 0"><div><label>kcal</label><input id="ck" type="number"></div><div><label>Proteine</label><input id="cp" type="number"></div><div><label>Carboidrati</label><input id="cc" type="number"></div><div><label>Grassi</label><input id="cf" type="number"></div></div><div class="f2"><div><label>Porzione: nome (facoltativo)</label><input id="cpn" placeholder="es. fetta"></div><div><label>Grammi per porzione</label><input id="cpg" type="number"></div></div><button class="p" style="width:100%" onclick="addCF()">Salva alimento</button></details>`}
 function vOggi(){const s=stats(day),ph=phaseOn(day),dt_=dayT(day),t=dt_?dt_.k:0,left=t?R(t-s.intake):null,tag=dayTag(day);
  const mb=(l,v,g,c)=>`<div style="flex:1"><div class="mut">${l}</div><b>${R(v)}</b><span class="mut">${g?' / '+R(g)+' g':' g'}</span><div class="pb"><i style="background:${c};width:${g?Math.min(100,v/g*100):0}%"></i></div></div>`;
  return bkCard()+startCard()+`<div class="row"><button onclick="go(-1)">‹</button><input type="date" value="${day}" onchange="day=this.value||day;render()"><button onclick="go(1)">›</button><button aria-label="Impostazioni" onclick="tab='piano';render()">⚙️</button></div>`+`<div class="card"><div class="row" style="margin:0"><div style="flex:1"><span class="mut">${ph?esc(ph.name)+(tag?' · '+tag:''):'Nessuna fase impostata'}</span><div style="font-size:30px;font-weight:700">${R(s.intake)}<span class="mut" style="font-size:15px">${t?' / '+R(t)+' kcal':' kcal'}</span></div></div>${left!==null?`<div style="text-align:right"><span class="mut">${left>=0?'Restano':'Oltre'}</span><div style="font-size:22px;font-weight:700">${Math.abs(left)}</div></div>`:''}</div>${t?`<div class="pb"><i style="width:${Math.min(100,s.intake/t*100)}%"></i></div>`:''}
@@ -336,7 +338,7 @@ function planCard(){if(day!==iso(new Date()))return '';const k=(new Date().getDa
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='5.3';
+const VER='5.4';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
