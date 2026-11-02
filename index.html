@@ -65,6 +65,7 @@ summary{cursor:pointer;padding:2px 0}details>summary b{font-size:16px}
 const K="fittrack.v1";
 let S={profile:{sex:"M",age:30,h:175,w:75,act:1.2},phases:[],exercises:["Panca piana","Squat","Stacco","Military press","Trazioni","Rematore","Corsa"],meals:[],work:[],weights:[]};
 try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+try{fixS()}catch(e){}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}persist()};
 const $=id=>document.getElementById(id);
 const num=id=>parseFloat($(id).value)||0;
@@ -339,11 +340,11 @@ function planCard(){if(day!==iso(new Date()))return '';const k=(new Date().getDa
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='5.6';
+const VER='5.8';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
-function fixS(){['meals','work','weights','phases','routines','foods','saved','meas','recent','favs','recipes','exercises'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.profile||typeof S.profile!=='object')S.profile={sex:"M",age:30,h:175,w:75,act:1.2}}
+function fixS(){if(S.profile&&!S.actV2){const m={1.375:1.3,1.55:1.4,1.725:1.5};if(m[S.profile.act])S.profile.act=m[S.profile.act];S.actV2=1}['meals','work','weights','phases','routines','foods','saved','meas','recent','favs','recipes','exercises'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.profile||typeof S.profile!=='object')S.profile={sex:"M",age:30,h:175,w:75,act:1.2}}
 /* backup */
 const bkDays=()=>S.lastBackup?Math.floor((Date.now()-S.lastBackup)/864e5):null;
 function bkCard(){if(S.meals.length+S.work.length+S.weights.length<10)return '';const d=bkDays();if(d!==null&&d<7)return '';
@@ -496,6 +497,32 @@ function vTrend(){const dates=[];for(let i=rng-1;i>=0;i--){const d=new Date();d.
  ${dt('tm','<b>Misure del corpo</b>',nh(measChart())+measCard(),false)}
  ${dt('tr','<b>Record personali</b>',nh(recCard()),false)}`}
 
+let wz={i:0,d:{sex:'M',age:'',h:'',w:'',act:1.2,goalW:'',ph:'massa'}};
+const wizOn=()=>!S.phases.length&&!S.wizSkip;
+const WZ=[
+ {q:'Sei…',k:'sex',t:'c',o:[['M','Uomo',''],['F','Donna','']]},
+ {q:'Quanti anni hai?',k:'age',t:'n',u:'anni',min:12,max:100},
+ {q:'Quanto sei alto?',k:'h',t:'n',u:'cm',min:120,max:230},
+ {q:'Quanto pesi adesso?',k:'w',t:'n',u:'kg',min:30,max:300},
+ {q:'Com’è la tua giornata, allenamenti esclusi?',k:'act',t:'c',o:[[1.2,'Sedentaria','Scrivania, poco movimento'],[1.3,'Leggera','Qualche camminata'],[1.4,'Moderata','Spesso in piedi o in movimento'],[1.5,'Alta','Lavoro fisico o molto attivo']]},
+ {q:'Qual è il tuo obiettivo?',k:'ph',t:'c',o:[['massa','Mettere massa','Surplus calorico'],['def','Definizione','Perdere grasso'],['ric','Ricomposizione','Più muscolo, meno grasso'],['man','Mantenimento','Restare come sei']]},
+ {q:'Hai un peso obiettivo?',k:'goalW',t:'n',u:'kg',min:30,max:300,opt:1}
+];
+function vWiz(){const st=WZ[wz.i],n=WZ.length,v=wz.d[st.k];
+ const dots='<div class="pb" style="margin:0 0 18px"><i style="width:'+Math.round((wz.i+1)/n*100)+'%"></i></div>';
+ let body;
+ if(st.t==='c')body=st.o.map((o,j)=>`<button class="${o[0]==v?'p':''}" style="display:block;width:100%;text-align:left;padding:14px;margin-bottom:8px;font-size:16px" onclick="wzPick(${j})"><b>${o[1]}</b>${o[2]?`<div style="font-size:12px;font-weight:400;opacity:.8">${o[2]}</div>`:''}</button>`).join('');
+ else body=`<div class="row"><input id="wzv" type="number" inputmode="decimal" step="any" style="font-size:22px;padding:12px" value="${v}" onkeydown="if(event.key==='Enter')wzNext()"><b>${st.u}</b></div><p class="mut" id="wze" style="color:var(--bad);margin:0 0 8px;font-size:13px"></p>${st.opt?'<p class="mut" style="font-size:13px;margin:0 0 8px">Puoi lasciare vuoto e aggiungerlo dopo.</p>':''}<button class="p" style="width:100%;padding:13px;font-size:16px" onclick="wzNext()">${wz.i===n-1?'Fine ✓':'Avanti'}</button>`;
+ return `<div class="card" style="margin-top:12px"><div class="mut" style="font-size:13px;margin-bottom:6px">Passo ${wz.i+1} di ${n}</div>${dots}<h2 style="margin:0 0 14px;font-size:22px">${st.q}</h2>${body}<div class="row" style="margin:14px 0 0;justify-content:space-between"><button ${wz.i?'':'style="visibility:hidden"'} onclick="wzBack()">‹ Indietro</button><button style="border:0;background:none;color:var(--mut)" onclick="wzSkip()">Salta</button></div></div>`}
+function wzPick(j){const s=WZ[wz.i];wz.d[s.k]=s.o[j][0];wzNext()}
+function wzNext(){const s=WZ[wz.i];if(s.t==='n'){const r=($('wzv').value||'').replace(',','.'),v=parseFloat(r);
+  if(isNaN(v)){if(!s.opt){$('wze').textContent='Inserisci un numero';return}wz.d[s.k]=''}
+  else if(v<s.min||v>s.max){$('wze').textContent='Inserisci un valore tra '+s.min+' e '+s.max;return}else wz.d[s.k]=v}
+ if(wz.i<WZ.length-1){wz.i++;render()}else wzDone()}
+function wzBack(){if(wz.i>0){wz.i--;render()}}
+function wzSkip(){S.wizSkip=true;save();render()}
+function wzDone(){const d=wz.d;S.profile={sex:d.sex,age:d.age,h:d.h,w:d.w,act:d.act,goalW:+d.goalW||0};const x=phCalc(d.ph);
+ S.phases.push({id:uid(),name:x.name,type:d.ph,start:iso(new Date()),kcal:x.k,p:x.p,c:x.c,f:x.f,rest:x.rest});save();tab='oggi';render()}
 function vPiano(){const p=S.profile,cur=phaseOn(iso(new Date())),first=!S.phases.length;
  const prof=`<div class="f2" style="margin-top:10px">
  <div><label>Sesso</label><select id="ps"><option value="M" ${p.sex==="M"?"selected":""}>Uomo</option><option value="F" ${p.sex==="F"?"selected":""}>Donna</option></select></div>
@@ -503,7 +530,7 @@ function vPiano(){const p=S.profile,cur=phaseOn(iso(new Date())),first=!S.phases
  <div><label>Altezza cm</label><input id="ph" type="number" value="${p.h}"></div>
  <div><label>Peso iniziale kg</label><input id="pw" type="number" step="0.1" value="${p.w}"></div>
  <div><label>Peso obiettivo kg (facoltativo)</label><input id="pg_" type="number" step="0.1" value="${p.goalW||''}"></div></div>
- <label>Attività quotidiana (senza allenamenti)</label><select id="pc">${[[1.2,"Sedentaria ×1,2"],[1.375,"Leggera ×1,375"],[1.55,"Moderata ×1,55"],[1.725,"Alta ×1,725"]].map(a=>`<option value="${a[0]}" ${a[0]==p.act?"selected":""}>${a[1]}</option>`).join("")}</select>
+ <label>Attività quotidiana (senza allenamenti)</label><p class="mut" style="margin:0 0 4px;font-size:12px">Non contare la palestra: gli allenamenti li aggiunge l’app a parte.</p><select id="pc">${[[1.2,"Sedentaria ×1,2"],[1.3,"Leggera ×1,3"],[1.4,"Moderata ×1,4"],[1.5,"Alta ×1,5"]].map(a=>`<option value="${a[0]}" ${a[0]==p.act?"selected":""}>${a[1]}</option>`).join("")}</select>
  <button class="p" style="width:100%;margin-top:8px" onclick="saveProf()">Salva profilo</button>`;
  const eb=`<label style="margin-top:12px">Allenamento: aggiungi al target di oggi</label><select onchange="setEB(this.value)">${[[0,'Niente (target fisso)'],[25,'25% delle kcal bruciate'],[50,'50% delle kcal bruciate'],[75,'75% delle kcal bruciate'],[100,'100% delle kcal bruciate']].map(a=>`<option value="${a[0]}" ${(+S.eatBack||0)===a[0]?'selected':''}>${a[1]}</option>`).join('')}</select><p class="mut" style="margin:4px 0 0;font-size:12px">Le stime di calorie bruciate sono approssimate: 50% è una scelta prudente.</p>`;
  const form=`<label style="margin-top:10px">Tipo di fase</label><select id="ft"><option value="massa">Massa</option><option value="def">Definizione</option><option value="ric">Ricomposizione</option><option value="man">Mantenimento</option></select>
@@ -539,7 +566,7 @@ function addPh(){const n=$("fn").value.trim(),k=num("fk");if(!n||k<=0)return;con
 function delPh(id){del('phases',id)}
 function expo(){const t=JSON.stringify(S);$("bk").value=t;$("bk").select();try{navigator.clipboard.writeText(t)}catch(e){}S.lastBackup=Date.now();save();$("bm").textContent="Esportato: copia il testo."}
 function impo(){applyImport($("bk").value)}
-function render(){const y=window.scrollY,same=render.t===tab;render.t=tab;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));$("view").innerHTML=({oggi:vOggi,cibo:vCibo,sch:vSch,trend:vTrend,piano:vPiano})[tab]();if(tab==="cibo"){fl();if(rcpB)rcpUp()}window.scrollTo(0,same?y:0)}
+function render(){const y=window.scrollY,same=render.t===tab;render.t=tab;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));const wo=wizOn();document.querySelector("nav").style.display=wo?"none":"";$("view").innerHTML=(wo?vWiz:({oggi:vOggi,cibo:vCibo,sch:vSch,trend:vTrend,piano:vPiano})[tab])();if(wo)setTimeout(()=>{const e=$("wzv");if(e&&!e.value)e.focus()},50);if(!wo&&tab==="cibo"){fl();if(rcpB)rcpUp()}window.scrollTo(0,same?y:0)}
 /* ---------- salvataggio nel tuo account ---------- */
 let DB=null,UID=null,dbReady=false,busy=false,pt=null,LW={};
 const CORE=['profile','phases','exercises','routines','foods','saved','weights','meas','recent','favs','recipes'];
