@@ -53,7 +53,7 @@ summary{cursor:pointer;padding:2px 0}details>summary b{font-size:16px}
 </nav>
 <div id="rt" hidden></div>
 <div id="ut" hidden></div>
-<div id="sc" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;padding:16px;flex-direction:column;gap:12px"><div style="color:#fff;text-align:center">Inquadra il codice a barre del prodotto</div><div id="rd" style="width:100%;max-width:420px;margin:auto"></div><button onclick="scanStop();$('bf2').click()">📸 Usa una foto del codice</button><button class="p" onclick="scanStop()">Chiudi</button></div>
+<div id="sc" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;padding:16px;flex-direction:column;gap:12px"><div style="color:#fff;text-align:center">Inquadra il codice a barre del prodotto</div><div id="sht" style="color:#fff;text-align:center;font-size:13px;min-height:34px"></div><div id="rd" style="width:100%;max-width:420px;margin:auto"></div><button onclick="scanStop();$('bf2').click()">📸 Usa una foto del codice</button><button class="p" onclick="scanStop()">Chiudi</button></div>
 <script>
 const K="fittrack.v1";
 let S={profile:{sex:"M",age:30,h:175,w:75,act:1.2},phases:[],exercises:["Panca piana","Squat","Stacco","Military press","Trazioni","Rematore","Corsa"],meals:[],work:[],weights:[]};
@@ -189,15 +189,15 @@ async function lookup(code){code=String(code||'').replace(/\D/g,'');if(code.leng
   if(!x){$('sm').textContent='Prodotto non trovato o senza valori nutrizionali: crealo come alimento personalizzato.';return}
   res=[x];showRes();$('sm').textContent='';pickF(0)}
  catch(e){$('sm').textContent='Ricerca non riuscita ('+errT(e)+'): controlla la connessione.'}}
-let scn=null;
+let scn=null,scnH=null;
 function loadScript(u){return new Promise((ok,ko)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>ko(new Error('script'));document.head.appendChild(e)})}
 async function loadQr(){if(typeof Html5Qrcode!=='undefined')return true;for(const u of ['https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js','https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js']){try{await loadScript(u);if(typeof Html5Qrcode!=='undefined')return true}catch(e){}}return false}
 const qrCfg=()=>{const F=Html5QrcodeSupportedFormats;return{formatsToSupport:[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128],verbose:false,experimentalFeatures:{useBarCodeDetectorIfSupported:true}}};
-async function scanStop(){if(scn){try{await scn.stop()}catch(e){}try{scn.clear()}catch(e){}scn=null}$('sc').style.display='none'}
+async function scanStop(){clearTimeout(scnH);const hh=$('sht');if(hh)hh.textContent='';if(scn){try{await scn.stop()}catch(e){}try{scn.clear()}catch(e){}scn=null}$('sc').style.display='none'}
 async function scanStart(){$('sm').textContent='Avvio la fotocamera...';
  if(!await loadQr()){$('sm').textContent='Scanner non caricato: serve internet. Prova “Foto al codice” o scrivi il numero.';return}
  $('sc').style.display='flex';
- try{scn=new Html5Qrcode('rd',qrCfg());await scn.start({facingMode:'environment'},{fps:10,qrbox:{width:280,height:140}},async t=>{await scanStop();lookup(t)},()=>{});$('sm').textContent=''}
+ try{scn=new Html5Qrcode('rd',qrCfg());await scn.start({facingMode:'environment'},{fps:15,qrbox:(w,h)=>({width:Math.floor(w*.92),height:Math.floor(Math.min(h*.6,w*.5))}),videoConstraints:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}},async t=>{await scanStop();lookup(t)},()=>{});$('sm').textContent='';clearTimeout(scnH);scnH=setTimeout(()=>{const h=$('sht');if(scn&&h)h.textContent='Non lo legge? Avvicinati o allontanati un poco, tieni il codice dritto e ben illuminato, oppure tocca “Usa una foto del codice”.'},7000)}
  catch(e){await scanStop();$('sm').textContent='Fotocamera non disponibile ('+((e&&(e.name||e.message))||e)+'). Usa “Foto al codice” o scrivi il numero.'}}
 async function scanPhoto(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;$('sm').textContent='Leggo il codice...';
  if(!await loadQr()){$('sm').textContent='Lettore non caricato: serve internet. Scrivi il numero del codice.';return}
@@ -292,7 +292,7 @@ function planCard(){const k=(new Date().getDay()+6)%7,rs=S.routines.filter(r=>(r
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='4.6';
+const VER='4.7';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
