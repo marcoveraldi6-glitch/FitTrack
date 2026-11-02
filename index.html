@@ -41,7 +41,7 @@ h3{margin:14px 0 6px;font-size:15px}.pos{color:var(--ac)}.neg{color:var(--ok)}
 .seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 summary{cursor:pointer;padding:2px 0}details>summary b{font-size:16px}
 #rt{position:fixed;left:8px;right:8px;bottom:calc(64px + env(safe-area-inset-bottom,0px));background:var(--ac);color:#fff;border-radius:12px;padding:8px 12px;display:flex;gap:8px;align-items:center;z-index:5}
-#rt[hidden],#ut[hidden]{display:none}#ut{position:fixed;left:8px;right:8px;bottom:calc(66px + env(safe-area-inset-bottom,0px));background:#2a2f3a;color:#fff;border-radius:12px;padding:8px 12px;display:flex;gap:8px;align-items:center;z-index:7;font-size:14px}#ut button{background:#fff3;color:#fff;border-color:#fff4;padding:6px 14px}#rt b{flex:1;font-size:20px}#rt button{background:#fff3;color:#fff;border-color:#fff4;padding:6px 10px}
+#sm:empty{display:none}#rt[hidden],#ut[hidden]{display:none}#ut{position:fixed;left:8px;right:8px;bottom:calc(66px + env(safe-area-inset-bottom,0px));background:#2a2f3a;color:#fff;border-radius:12px;padding:8px 12px;display:flex;gap:8px;align-items:center;z-index:7;font-size:14px}#ut button{background:#fff3;color:#fff;border-color:#fff4;padding:6px 14px}#rt b{flex:1;font-size:20px}#rt button{background:#fff3;color:#fff;border-color:#fff4;padding:6px 10px}
 </style></head><body>
 <div id="sync" class="mut" style="text-align:center;font-size:11px;padding-top:8px"></div>
 <main id="view"></main>
@@ -338,7 +338,7 @@ function planCard(){if(day!==iso(new Date()))return '';const k=(new Date().getDa
  return `<div class="card"><b>Allenamento di oggi</b>${rs.map(r=>`<div class="row" style="margin:8px 0 0"><div style="flex:1">${esc(r.name)}<br><span class="mut">${r.items.map(i=>i.act?esc(i.sport)+' '+i.min+' min':esc(i.ex)).join(' · ')}</span></div><button class="p" onclick="goSess('${r.id}')">Avvia</button></div>`).join('')}</div>`}
 function goSess(id){tab='sch';startSess(id)}
 /* ---------- v3: offline, backup, progressione, ricette, riposo, riepilogo, obiettivo ---------- */
-const VER='5.4';
+const VER='5.5';
 S.recent=S.recent||[];S.favs=S.favs||[];S.recipes=S.recipes||[];
 let rcpB=null,bkm='',wOff=0;
 const dow=d=>(new Date(d+'T12:00:00').getDay()+6)%7;
@@ -365,7 +365,8 @@ function sgCard(it,i){const g=sgOf(it);if(!g)return '';return `<div class="mut" 
 function touch(x){S.recent=[{n:x.n,k:x.k,p:x.p,c:x.c,f:x.f,por:x.por||undefined},...S.recent.filter(r=>r.n!==x.n)].slice(0,12)}
 const isFav=x=>S.favs.some(f=>f.n===x.n);
 function togFav(){if(!pick)return;if(isFav(pick))S.favs=S.favs.filter(f=>f.n!==pick.n);else S.favs.unshift({n:pick.n,k:pick.k,p:pick.p,c:pick.c,f:pick.f,por:pick.por||undefined});save();const b=$('fvb');if(b)b.textContent=isFav(pick)?'★ Preferito':'☆ Preferito'}
-const searchCard=()=>`<div class="card"><input id="fq" placeholder="Cerca alimento o marca (es. pan bauletto)" oninput="fl()"><div class="row" style="margin:8px 0"><button style="flex:1" onclick="onlineSearch()">Cerca online</button><button style="flex:1" onclick="scanStart()">📷 Scansiona</button></div><div class="row"><input id="bc" inputmode="numeric" placeholder="oppure scrivi il codice a barre"><button onclick="lookup($('bc').value)">Cerca</button></div><button style="width:100%;margin-bottom:6px" onclick="$('bf2').click()">📸 Foto al codice (con zoom)</button><input id="bf2" type="file" accept="image/*" capture="environment" hidden onchange="scanPhoto(this)"><p class="mut" id="sm" style="margin:0 0 6px"></p><ul id="fr"></ul><div id="pk"></div></div>`;
+const searchCard=()=>`<div class="card"><div class="row" style="margin:0"><input id="fq" type="search" placeholder="Cerca alimento, marca o codice" oninput="fl()" onkeydown="if(event.key==='Enter')goSearch()"><button onclick="goSearch()">Cerca</button><button class="p" aria-label="Scansiona codice a barre" style="padding:9px 14px" onclick="scanStart()">📷</button></div><p class="mut" id="sm" style="margin:8px 0 0;font-size:13px"></p><ul id="fr"></ul><div id="pk"></div><input id="bf2" type="file" accept="image/*" capture="environment" hidden onchange="scanPhoto(this)"></div>`;
+function goSearch(){const q=$('fq').value.trim();if(/^\d{8,14}$/.test(q))lookup(q);else onlineSearch()}
 const rcpList=()=>`<div class="card"><div class="row" style="margin:0"><b style="flex:1">Ricette</b><button onclick="rcpB={name:'',por:1,items:[]};render()">+ Nuova</button></div>${S.recipes.length?`<ul>${S.recipes.map(r=>`<li><div>${esc(r.name)}<br><span class="mut">${R(sum(r.items,'kcal')/r.por)} kcal a porzione</span></div><input id="rq_${r.id}" type="number" step="0.5" value="1" style="max-width:62px"><button onclick="useRcp('${r.id}')">Aggiungi</button><button class="x" onclick="del('recipes','${r.id}')">×</button></li>`).join('')}</ul>`:'<p class="mut" style="margin:6px 0 0">Crea una ricetta con più ingredienti e aggiungila a porzioni.</p>'}</div>`;
 function useRcp(id){const r=S.recipes.find(x=>x.id===id);if(!r)return;const q=parseFloat($('rq_'+id).value)||1,k=q/r.por;
  S.meals.push({id:uid(),date:day,slot:add,name:r.name+' · '+q+' porz.',kcal:sum(r.items,'kcal')*k,p:sum(r.items,'p')*k,c:sum(r.items,'c')*k,f:sum(r.items,'f')*k});save();render()}
