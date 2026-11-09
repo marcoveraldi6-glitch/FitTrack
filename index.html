@@ -1,11 +1,4 @@
-<!doctype html>
-<html lang="it">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="FitTrack">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>FitTrack</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -163,8 +156,7 @@ nav button.on{color:var(--acc)}
 #rt button{background:#ffffff1a;color:var(--slab-fg);border:0;border-radius:10px;min-height:44px;min-width:48px;padding:0 10px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){.meter i,.mb i{transition:width .4s ease}}
 </style>
-</head>
-<body>
+<!--BODY-->
 <header><div class="wrap" id="hd"></div></header>
 <main><div class="wrap" id="view"></div></main>
 <div id="rt" hidden></div>
@@ -173,7 +165,10 @@ nav button.on{color:var(--acc)}
 const K="fittrack.v1",KS="fittrack.sess";
 let S={profile:{sex:"M",age:30,h:175,w:75,act:1.2},phases:[],exercises:["Panca piana","Squat","Stacco","Military press","Trazioni","Rematore","Corsa"],meals:[],work:[],weights:[],routines:[],foods:[],saved:[]};
 try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
-S.routines=S.routines||[];S.foods=S.foods||[];S.saved=S.saved||[];
+S.routines=S.routines||[];S.foods=S.foods||[];S.saved=S.saved||[];S.skip=S.skip||[];
+/* un giorno conta nelle medie solo se ha pasti registrati e non è segnato come incompleto */
+const counts=d=>!S.skip.includes(d)&&S.meals.some(m=>m.date===d);
+function togSkip(){S.skip=S.skip.includes(day)?S.skip.filter(x=>x!==day):[...S.skip,day];save();render()}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
 const num=id=>{const e=$(id);return e?parseFloat(String(e.value).replace(",","."))||0:0};
@@ -265,18 +260,34 @@ document.addEventListener("visibilitychange",()=>{if(ss&&document.visibilityStat
 let pick=null,res=[];
 const SL=["Colazione","Pranzo","Cena","Spuntini"];
 const FD=("Pasta cruda|353|11|79|1.4;Pasta cotta|158|5.8|31|0.9;Riso crudo|350|7|79|0.6;Riso cotto|130|2.7|28|0.3;Pane|275|8.5|58|0.5;Fette biscottate|410|11|75|5;Fiocchi d’avena|372|13|60|7;Patate|77|2|17|0.1;Patate dolci|86|1.6|20|0.1;Petto di pollo crudo|110|23|0|1.2;Petto di tacchino|107|24|0|1;Manzo magro|130|21|0|5;Salmone|185|20|0|12;Merluzzo|71|16|0|0.4;Tonno al naturale|103|24|0|1;Tonno sott’olio|190|25|0|10;Uova intere|128|12.5|0.7|8.7;Albume|44|10|0.7|0;Prosciutto cotto|215|19|1|15;Prosciutto crudo|235|26|0|15;Bresaola|150|32|0|2;Latte intero|64|3.3|4.9|3.6;Latte parz. scremato|46|3.3|5|1.6;Yogurt greco 0%|57|10|4|0.2;Yogurt bianco|60|4|5|3;Mozzarella|253|18|1|20;Parmigiano|392|33|0|28;Ricotta|146|8.8|3.5|10.9;Olio extravergine|899|0|0|100;Burro|758|0.8|1|83;Mandorle|579|21|22|50;Noci|654|15|14|65;Burro d’arachidi|588|25|20|50;Banana|89|1.1|23|0.3;Mela|52|0.3|14|0.2;Arancia|47|0.9|12|0.1;Fragole|32|0.7|7.7|0.3;Frutti di bosco|57|0.7|14|0.3;Insalata|15|1.4|2.9|0.2;Pomodori|18|0.9|3.9|0.2;Zucchine|17|1.2|3.1|0.3;Broccoli|34|2.8|7|0.4;Spinaci|23|2.9|3.6|0.4;Carote|41|0.9|10|0.2;Lenticchie cotte|116|9|20|0.4;Ceci cotti|164|8.9|27|2.6;Fagioli cotti|127|8.7|23|0.5;Tofu|76|8|1.9|4.8;Passata di pomodoro|30|1.5|5|0.2;Pizza margherita|270|11|33|10;Cioccolato fondente|598|8|46|43;Biscotti secchi|430|7|75|11;Miele|304|0.3|82|0;Marmellata|250|0.4|60|0.1;Proteine whey|400|80|8|6;Birra|43|0.5|3.6|0;Vino|85|0.1|2.6|0").split(";").map(s=>{const a=s.split("|");return{n:a[0],k:+a[1],p:+a[2],c:+a[3],f:+a[4]}});
-function fl(){const q=$("fq");if(!q)return;const v=q.value.toLowerCase().trim(),a=[...S.foods.map(x=>({...x,u:1})),...FD];
- res=(v?a.filter(x=>x.n.toLowerCase().includes(v)):a).slice(0,v?12:6);
- $("fr").innerHTML=res.length?res.map((x,i)=>`<button class="li res" onclick="pickF(${i})"><span class="grow"><b>${esc(x.n)}${x.u?" ★":""}</b></span><span class="mut">${N(x.k)} kcal/100 g</span></button>`).join(""):'<p class="empty-t">Nessun alimento trovato. Aggiungilo qui sotto come alimento personalizzato.</p>'}
+/* ricerca: senza accenti e apostrofi, più parole in qualsiasi ordine, singolare/plurale, piccoli errori di battitura */
+let fq="";
+const nrm=s=>String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’'`.,()%/-]/g," ").replace(/\s+/g," ").trim();
+const stem=w=>w.length>3?w.replace(/[aeiou]$/,""):w;
+function lev1(a,b){if(Math.abs(a.length-b.length)>1)return false;let i=0,j=0,e=0;while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++;continue}if(++e>1)return false;if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++}}return e+(a.length-i)+(b.length-j)<=1}
+function score(food,toks){const words=nrm(food.n).split(" "),full=words.join(" ");let sc=0;
+ for(const t of toks){const st=stem(t);let best=0;
+  for(const w of words){if(w===t)best=Math.max(best,4);else if(w.startsWith(t))best=Math.max(best,3);else if(stem(w)===st||w.startsWith(st)&&st.length>=3)best=Math.max(best,2.5);else if(t.length>=4&&lev1(stem(w),st))best=Math.max(best,1.5);else if(t.length>=3&&w.includes(t))best=Math.max(best,1)}
+  if(!best&&t.length>=4&&full.replace(/ /g,"").includes(t))best=2;
+  if(!best)return 0;sc+=best}
+ if(full.startsWith(toks.join(" ")))sc+=2;else if(stem(words[0])===stem(toks[0]))sc+=1.5;return sc+(food.u?.5:0)}
+function allFoods(){const seen=new Set(),a=[];for(const x of [...S.foods.map(x=>({...x,u:1})),...FD]){const k=nrm(x.n);if(!seen.has(k)){seen.add(k);a.push(x)}}return a}
+function recentFoods(){const a=allFoods(),by=new Map(a.map(x=>[nrm(x.n),x])),out=[],seen=new Set();
+ for(const m of [...S.meals].reverse()){const n=nrm(m.fn||String(m.name||"").replace(/\s+\d+([.,]\d+)?\s*g$/,""));const f=by.get(n);if(f&&!seen.has(n)){seen.add(n);out.push(f)}if(out.length>=8)break}
+ return out}
+function fl(){const q=$("fq");if(!q)return;fq=q.value;const toks=nrm(fq).split(" ").filter(Boolean);let head="";
+ if(toks.length){res=allFoods().map(x=>({x,s:score(x,toks)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s||a.x.n.length-b.x.n.length).slice(0,20).map(o=>o.x)}
+ else{const r=recentFoods();res=r.length?r:allFoods().slice(0,8);head=`<p class="mut small" style="margin:0;padding:10px 14px 0">${r.length?"Usati di recente":"Suggeriti"}</p>`}
+ $("fr").innerHTML=res.length?head+res.map((x,i)=>`<button class="li res" onclick="pickF(${i})"><span class="grow"><b>${esc(x.n)}${x.u?" ★":""}</b><span class="mut">P ${x.p} · C ${x.c} · G ${x.f}</span></span><span class="mut">${N(x.k)} kcal/100 g</span></button>`).join(""):'<p class="empty-t">Nessun alimento trovato. Aggiungilo qui sotto come alimento personalizzato.</p>'}
 function pickF(i){pick=res[i];
  $("pk").innerHTML=`<div class="panel pad ok"><h3>${esc(pick.n)}</h3><div class="inrow"><input id="pg" type="number" inputmode="decimal" value="100" aria-label="Grammi" oninput="pv()"><span class="mut" style="align-self:center">grammi</span></div><div class="chips">${[30,50,100,150,200,250].map(g=>`<button onclick="$('pg').value=${g};pv()">${g} g</button>`).join("")}</div><p class="mut small" id="pp" style="margin:0"></p><button class="pri wide" onclick="addF()">Aggiungi a ${esc(addSlot.toLowerCase())}</button></div>`;pv();$("pk").scrollIntoView({block:"nearest",behavior:"smooth"})}
 function pv(){const r=num("pg")/100;$("pp").textContent=N(pick.k*r)+" kcal · P "+(pick.p*r).toFixed(1)+" · C "+(pick.c*r).toFixed(1)+" · G "+(pick.f*r).toFixed(1)}
-function addF(){const g=num("pg");if(g<=0||!pick)return;const r=g/100;S.meals.push({id:uid(),date:day,slot:addSlot,name:pick.n+" "+g+" g",kcal:pick.k*r,p:pick.p*r,c:pick.c*r,f:pick.f*r});pick=null;save();render()}
+function addF(){const g=num("pg");if(g<=0||!pick)return;const r=g/100;S.meals.push({id:uid(),date:day,slot:addSlot,fn:pick.n,name:pick.n+" "+g+" g",kcal:pick.k*r,p:pick.p*r,c:pick.c*r,f:pick.f*r});pick=null;fq="";save();render()}
 function addCF(){const n=$("cn").value.trim();if(!n)return;S.foods.push({n,k:num("ck"),p:num("cp"),c:num("cc"),f:num("cf")});save();render();const q=$("fq");if(q){q.value=n;fl()}}
 function saveMeal(sl){const n=$("sn"+SL.indexOf(sl)).value.trim();if(!n)return;S.saved.push({id:uid(),name:n,items:S.meals.filter(m=>m.date===day&&(m.slot||"Spuntini")===sl).map(m=>({name:m.name,kcal:m.kcal,p:m.p,c:m.c,f:m.f}))});save();render()}
 function useSaved(id){const s=S.saved.find(x=>x.id===id);if(!s)return;s.items.forEach(m=>S.meals.push({...m,id:uid(),date:day,slot:addSlot}));save();render()}
 function copyPrev(){const d=new Date(day+"T12:00:00");d.setDate(d.getDate()-1);const p=iso(d);S.meals.filter(m=>m.date===p&&(m.slot||"Spuntini")===addSlot).forEach(m=>S.meals.push({...m,id:uid(),date:day}));save();render()}
-function openAdd(sl){addSlot=sl;tab="cibo";sub="add";pick=null;render();setTimeout(()=>{const q=$("fq");if(q)q.focus()},50)}
+function openAdd(sl){addSlot=sl;fq="";tab="cibo";sub="add";pick=null;render();setTimeout(()=>{const q=$("fq");if(q)q.focus()},50)}
 function setW(){const v=num("wv");if(v>0){S.weights=S.weights.filter(x=>x.date!==day);S.weights.push({date:day,kg:v});save();render()}}
 const itemRow=m=>`<div class="li"><div class="grow"><b>${esc(m.name||"Pasto")}</b><span class="mut">${N(m.kcal)} kcal · P ${R(m.p)} · C ${R(m.c)} · G ${R(m.f)}</span></div><button class="x" aria-label="Elimina" onclick="del('meals','${m.id}')">${I("x",18)}</button></div>`;
 const workRow=x=>`<div class="li"><div class="grow"><b>${esc(x.exercise)}</b><span class="mut">${x.sets}×${x.reps}${x.kg?" a "+x.kg+" kg":""} · ${N(x.kcal)} kcal</span></div><button class="x" aria-label="Elimina" onclick="del('work','${x.id}')">${I("x",18)}</button></div>`;
@@ -301,11 +312,12 @@ function vOggi(){const s=stats(day),ph=phaseOn(day),t=ph?ph.kcal:0,left=t?t-s.in
 
 /* CIBO */
 function vCibo(){const s=stats(day),ph=phaseOn(day);
- return `<div class="sumline"><span><b>${N(s.intake)}</b> <span class="mut">${ph?"/ "+N(ph.kcal)+" ":""}kcal</span></span><span class="mut small">P ${R(s.p)} · C ${R(s.c)} · G ${R(s.f)} g</span></div>`+
+ return `<div class="sumline"><span><b>${N(s.intake)}</b> <span class="mut">${ph?"/ "+N(ph.kcal)+" ":""}kcal</span></span><span class="mut small">P ${R(s.p)} · C ${R(s.c)} · G ${R(s.f)} g</span></div>
+ <label class="panel pad" style="flex-direction:row;align-items:center;gap:12px;margin:0;color:var(--fg);font-size:15px;cursor:pointer"><input type="checkbox" style="width:22px;height:22px;min-height:0;flex:none;accent-color:var(--acc)" ${S.skip.includes(day)?"checked":""} onchange="togSkip()"><span class="grow"><b>Giornata incompleta</b><span class="mut">Ho saltato pasti o non li ho segnati tutti: non contarla nelle medie</span></span></label>`+
  SL.map((sl,k)=>{const it=s.m.filter(m=>(m.slot||"Spuntini")===sl);return `<section class="block"><div class="bh"><h2>${sl}</h2><span class="mut small">${N(sum(it,"kcal"))} kcal</span></div><div class="panel">${it.map(itemRow).join("")}<button class="addrow" onclick="openAdd('${sl}')">${I("plus",18)} Aggiungi alimento</button></div>
  ${it.length?`<details class="save"><summary>Salva come pasto da ripetere</summary><div class="inrow"><input id="sn${k}" aria-label="Nome del pasto" placeholder="Es. Colazione standard"><button class="sec" onclick="saveMeal('${sl}')">Salva</button></div></details>`:""}</section>`}).join("")}
 function vAdd(){const it=S.meals.filter(m=>m.date===day&&(m.slot||"Spuntini")===addSlot);
- return `<section class="block"><label for="fq" class="vh">Cerca alimento</label><input id="fq" type="search" placeholder="Cerca: pasta, pollo, yogurt…" oninput="fl()" autocomplete="off"><div class="panel" id="fr"></div><div id="pk"></div></section>
+ return `<section class="block"><label for="fq" class="vh">Cerca alimento</label><input id="fq" type="search" value="${esc(fq)}" placeholder="Cerca: pasta, pollo, yogurt…" oninput="fl()" autocomplete="off"><div class="panel" id="fr"></div><div id="pk"></div></section>
  <div class="inrow"><button class="sec wide" onclick="copyPrev()">Copia ${esc(addSlot.toLowerCase())} di ieri</button></div>
  ${S.saved.length?`<section class="block"><h2>Pasti salvati</h2><div class="panel">${S.saved.map(x=>`<div class="li"><div class="grow"><b>${esc(x.name)}</b><span class="mut">${N(sum(x.items,"kcal"))} kcal · ${x.items.length} alimenti</span></div><button class="sec sm" onclick="useSaved('${x.id}')">Usa</button><button class="x" aria-label="Elimina pasto salvato" onclick="del('saved','${x.id}')">${I("x",18)}</button></div>`).join("")}</div></section>`:""}
  <section class="block"><div class="bh"><h2>Già inserito</h2><span class="mut small">${N(sum(it,"kcal"))} kcal</span></div><div class="panel">${it.length?it.map(itemRow).join(""):'<p class="empty-t">Ancora niente in questo pasto.</p>'}</div></section>
@@ -350,17 +362,24 @@ function vBuilder(){return `<section class="panel pad"><label for="bn">Nome dell
 function vProg(){const dates=[];for(let i=rng-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);dates.push(iso(d))}
  if(!trEx||!S.exercises.includes(trEx))trEx=S.exercises[0]||"";
  const wm=Object.fromEntries(S.weights.map(x=>[x.date,x.kg])),w=dates.map(d=>wm[d]??null);
- const ma=w.map((_,i)=>{const a=w.slice(Math.max(0,i-6),i+1).filter(v=>v!=null);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null});
- const bal=dates.map(d=>{const s=stats(d);return(s.m.length||s.w.length)?s.bal:null}),bv=bal.filter(v=>v!=null);
- const avg=bv.length?R(bv.reduce((s,v)=>s+v,0)/bv.length):null;
+ /* media mobile sulle ultime 7 pesate effettive: i giorni senza pesata non pesano */
+ const ma=w.map((v,i)=>{if(v==null)return null;const a=w.slice(0,i+1).filter(x=>x!=null).slice(-7);return a.reduce((s,x)=>s+x,0)/a.length});
+ const ok=dates.map(counts),mean=a=>{const v=a.filter(x=>x!=null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null};
+ const bal=dates.map((d,i)=>ok[i]?stats(d).bal:null),avg=mean(bal)===null?null:R(mean(bal));
+ const pro=dates.map((d,i)=>ok[i]?stats(d).p:null),kc=dates.map((d,i)=>ok[i]?stats(d).intake:null);
+ const pAvg=mean(pro),kAvg=mean(kc),nOk=ok.filter(Boolean).length,ph=phaseOn(today());
  const wv=w.filter(v=>v!=null),dw=wv.length>1?wv[wv.length-1]-wv[0]:null;
  const sess=new Set(S.work.filter(x=>x.date>=dates[0]).map(x=>x.date)).size;
  const ew=S.work.filter(x=>x.exercise===trEx);
  const mxk=dates.map(d=>{const a=ew.filter(x=>x.date===d);return a.length?Math.max(...a.map(x=>+x.kg||0)):null});
  const vol=dates.map(d=>{const a=ew.filter(x=>x.date===d);return a.length?a.reduce((s,x)=>s+x.sets*x.reps*x.kg,0):null});
  return `<div class="seg" role="group" aria-label="Periodo">${[14,30,90].map(n=>`<button class="${n===rng?"on":""}" onclick="rng=${n};render()">${n} giorni</button>`).join("")}</div>
- <div class="tiles"><div class="tile"><span>Peso attuale</span><b>${curW().toLocaleString("it-IT")} kg</b></div><div class="tile"><span>Variazione</span><b>${dw===null?"—":(dw>0?"+":"")+dw.toFixed(1).replace(".",",")+" kg"}</b></div><div class="tile"><span>Bilancio medio</span><b class="${avg>0?"sur":"def"}">${avg===null?"—":(avg>0?"+":"")+N(avg)}</b></div><div class="tile"><span>Giorni di allenamento</span><b>${sess}</b></div></div>
- <section class="block"><h2>Peso</h2><div class="panel pad">${line(dates,[w,ma],["var(--mut)","var(--acc)"],"Andamento del peso")}<div class="legend"><span><i style="background:var(--mut)"></i>Pesate</span><span><i style="background:var(--acc)"></i>Media 7 giorni</span></div></div></section>
+ <div class="tiles"><div class="tile"><span>Peso attuale</span><b>${curW().toLocaleString("it-IT")} kg</b></div><div class="tile"><span>Variazione</span><b>${dw===null?"—":(dw>0?"+":"")+dw.toFixed(1).replace(".",",")+" kg"}</b></div><div class="tile"><span>Bilancio medio</span><b class="${avg>0?"sur":"def"}">${avg===null?"—":(avg>0?"+":"")+N(avg)}</b></div><div class="tile"><span>Giorni di allenamento</span><b>${sess}</b></div>
+ <div class="tile"><span>Proteine medie</span><b>${pAvg===null?"—":R(pAvg)+" g"}</b><span>${pAvg===null?"":(pAvg/curW()).toFixed(1).replace(".",",")+" g/kg"+(ph&&ph.p?" · target "+ph.p:"")}</span></div>
+ <div class="tile"><span>Kcal medie</span><b>${kAvg===null?"—":N(kAvg)}</b><span>${ph?"target "+N(ph.kcal):""}</span></div></div>
+ <p class="mut small" style="margin:-14px 0 0">Medie su ${nOk} ${nOk===1?"giorno valido":"giorni validi"} su ${rng}: esclusi i giorni senza pasti e quelli segnati come incompleti.</p>
+ <section class="block"><h2>Proteine</h2><div class="panel pad">${bars(dates,pro,false,"Proteine giornaliere")}<p class="mut small" style="margin:0">Grammi al giorno, solo giorni validi.</p></div></section>
+ <section class="block"><h2>Peso</h2><div class="panel pad">${line(dates,[w,ma],["var(--mut)","var(--acc)"],"Andamento del peso")}<div class="legend"><span><i style="background:var(--mut)"></i>Pesate</span><span><i style="background:var(--acc)"></i>Media ultime 7 pesate</span></div></div></section>
  <section class="block"><h2>Bilancio calorico</h2><div class="panel pad">${bars(dates,bal,true,"Bilancio calorico giornaliero")}<div class="legend"><span><i style="background:var(--ft)"></i>Surplus</span><span><i style="background:var(--ok)"></i>Deficit</span></div></div></section>
  <section class="block"><h2>Forza</h2><div class="panel pad"><label for="tre" class="vh">Esercizio</label><select id="tre" onchange="trEx=this.value;render()">${S.exercises.map(e=>`<option ${e===trEx?"selected":""}>${esc(e)}</option>`).join("")}</select>
  <p class="mut small" style="margin:4px 0 0">Carico massimo (kg)</p>${line(dates,[mxk],["var(--acc)"],"Carico massimo")}<p class="mut small" style="margin:4px 0 0">Volume (serie × ripetizioni × kg)</p>${bars(dates,vol,false,"Volume di allenamento")}</div></section>`}
@@ -408,5 +427,5 @@ function render(){const key=tab+"|"+(sub||""),same=render.k===key,y=window.scrol
 render();
 if(ss)wake();
 </script>
-</body>
-</html>
+
+</body></html>
